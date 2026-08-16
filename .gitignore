@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.pytest_cache/
+
+# 工具运行产物
+*.part
+config.json
+*.db
+*.db-wal
+*.db-shm
+.DS_Store

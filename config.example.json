@@ -1,0 +1,16 @@
+{
+  "token": "",
+  "refresh_token": "",
+  "token_issued_at": "",
+  "token_expires_in": 0,
+  "download_dir": "",
+  "database_path": "",
+  "page_size": 50,
+  "pagination": "auto",
+  "timeout": 30,
+  "retries": 3,
+  "workers": 4,
+  "verify_ssl": true,
+  "user_agent": "forza-sync/0.1.0",
+  "enabled_games": ["FH5", "FH6"]
+}
