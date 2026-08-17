@@ -27,11 +27,13 @@ pip install -r requirements.txt
 # 安装为命令行工具
 pip install -e .
 
-# 可选：浏览器自动登录（需额外安装 Playwright 与 Chromium）
+# 可选：浏览器自动登录（需安装 Playwright）
 pip install -r requirements-login.txt
-playwright install chromium
+# 默认使用系统浏览器（Edge/Chrome/Firefox），无需下载额外浏览器。
+# 仅当系统没有浏览器、需回退 Playwright Chromium 时才需要：
+#   playwright install chromium
 # 国内网络可设置镜像下载浏览器：
-# $env:PLAYWRIGHT_DOWNLOAD_HOST='https://npmmirror.com/mirrors/playwright/'
+#   $env:PLAYWRIGHT_DOWNLOAD_HOST='https://npmmirror.com/mirrors/playwright/'
 ```
 
 ## 快速开始

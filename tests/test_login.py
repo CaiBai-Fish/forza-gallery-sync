@@ -17,6 +17,7 @@ import pytest
 from forza_sync import oauth
 from forza_sync.auth import TokenBundle
 from forza_sync.errors import AuthError, NetworkError
+from forza_sync.login import detect_system_browser
 
 try:
     import playwright  # noqa: F401
@@ -24,6 +25,9 @@ try:
     _PLAYWRIGHT_AVAILABLE = True
 except ImportError:
     _PLAYWRIGHT_AVAILABLE = False
+
+# 集成测试使用系统浏览器（与 login 默认行为一致），避免依赖 Playwright 自带 Chromium
+_SYSTEM_BROWSER_CHANNEL = detect_system_browser() if _PLAYWRIGHT_AVAILABLE else None
 
 # RFC 7636 附录 B 的官方测试向量
 RFC_VERIFIER = "dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk"
@@ -222,7 +226,10 @@ class _OAuthServer:
         self._httpd.server_close()
 
 
-@pytest.mark.skipif(not _PLAYWRIGHT_AVAILABLE, reason="playwright 未安装")
+@pytest.mark.skipif(
+    not _PLAYWRIGHT_AVAILABLE or not _SYSTEM_BROWSER_CHANNEL,
+    reason="需要 playwright 与系统浏览器（Edge/Chrome/Firefox）",
+)
 def test_full_oauth_flow_with_real_playwright(tmp_path, monkeypatch):
     """端到端验证标准 OAuth 流程：浏览器授权 → 捕获 code → 交换 token。"""
     from forza_sync.login import BrowserLogin
@@ -233,7 +240,12 @@ def test_full_oauth_flow_with_real_playwright(tmp_path, monkeypatch):
         monkeypatch.setattr(oauth, "TOKEN_URL", base + "/token")
         monkeypatch.setattr(oauth, "REDIRECT_URI", base + "/callback")
 
-        login = BrowserLogin(profile_dir=str(tmp_path / "profile"), headless=True, timeout=30)
+        login = BrowserLogin(
+            profile_dir=str(tmp_path / "profile"),
+            headless=True,
+            timeout=30,
+            channel=_SYSTEM_BROWSER_CHANNEL,
+        )
         bundle = login.capture()
 
         assert bundle.access_token == "ACC_TEST"
