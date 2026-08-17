@@ -1,14 +1,15 @@
-"""浏览器自动登录任意 Xbox 账号并捕获 Token（基于 Playwright）。
+"""浏览器驱动的标准 OAuth 2.0 授权码 + PKCE 登录（基于 Playwright）。
 
-流程：
-1. 启动浏览器（有头模式，支持持久化会话），直接打开画廊页 https://forza.net/myforza
-2. 若未登录，用户在浏览器窗口中登录任意 Xbox / Microsoft 账号（支持两步验证）
-3. 工具自动捕获 token，两条路径：
-   a) 拦截发往 api.forza.net 的**请求头**中的 `Authorization: Bearer ...`（access_token）
-      —— 即使已登录、不再走 /connect/token，只要 SPA 调用画廊接口即可捕获
-   b) 拦截 /connect/token 的**响应体**（access_token + refresh_token，用于自动续期）
-4. 若只拿到 access_token，则从浏览器 localStorage / Cookie 中兜底提取 refresh_token
-5. 保存到配置，之后由 auth.TokenManager 自动刷新续期
+按照 OAuth 2.0 授权码流程实现（参考微软身份平台文档）：
+https://learn.microsoft.com/zh-cn/entra/identity-platform/v2-oauth2-auth-code-flow
+
+1. 生成 PKCE code_verifier / code_challenge（S256）与 state
+2. 打开浏览器访问授权端点 api.forza.net/connect/authorize
+   —— 未登录时会被重定向到 Microsoft 登录页（login.live.com）
+3. 用户登录任意 Xbox / Microsoft 账号（支持两步验证）
+4. 浏览器被重定向回 redirect_uri（https://forza.net/callback）并携带 code + state
+5. 用 code + code_verifier 在令牌端点换取 access_token + refresh_token
+6. 保存到配置，之后由 auth.TokenManager 自动刷新续期
 
 依赖（可选，仅在 login 命令需要）：
     pip install playwright && playwright install chromium
@@ -16,25 +17,18 @@
 
 from __future__ import annotations
 
-import json
 import logging
 import os
+import secrets
 import time
 from pathlib import Path
-from typing import Callable, List, Optional
+from typing import Callable, Optional
 
+from . import oauth
 from .auth import TokenBundle
 from .errors import AuthError
 
 log = logging.getLogger(__name__)
-
-LOGIN_URL = "https://forza.net/"
-GALLERY_PAGE_URL = "https://forza.net/myforza"  # 画廊页，进入后才触发画廊 API 请求
-TOKEN_ENDPOINT_HINT = "/connect/token"
-GALLERY_API_HINT = "/api/v4/me/gallery/"
-
-# 周期性地重新进入画廊页以触发 API 请求（秒）
-REENTER_INTERVAL = 8
 
 MessageFn = Optional[Callable[[str], None]]
 
@@ -101,29 +95,8 @@ def detect_system_browser() -> Optional[str]:
     return None
 
 
-def parse_token_json(data) -> Optional[TokenBundle]:
-    """从 /connect/token 的 JSON 响应中提取 TokenBundle。
-
-    结构符合 { access_token, refresh_token, expires_in } 时返回，
-    否则返回 None（用于过滤无关响应）。
-    """
-    if not isinstance(data, dict):
-        return None
-    access = data.get("access_token")
-    if not isinstance(access, str) or not access:
-        return None
-    refresh = data.get("refresh_token")
-    if not isinstance(refresh, str) or not refresh:
-        refresh = ""
-    try:
-        expires = int(data.get("expires_in") or 0)
-    except (TypeError, ValueError):
-        expires = 0
-    return TokenBundle(access_token=access, refresh_token=refresh, expires_in=expires)
-
-
 class BrowserLogin:
-    """Playwright 浏览器登录与 Token 捕获。"""
+    """通过浏览器完成标准 OAuth 授权码 + PKCE 登录并获取 Token。"""
 
     def __init__(
         self,
@@ -134,7 +107,7 @@ class BrowserLogin:
         channel: Optional[str] = None,
         on_message: MessageFn = None,
     ):
-        """channel：启动系统浏览器（"msedge" / "chrome"），None 使用 Playwright 自带 Chromium。"""
+        """channel：启动系统浏览器（"msedge" / "chrome" / "firefox"），None 使用 Playwright Chromium。"""
         self.profile_dir = Path(profile_dir) if profile_dir else None
         self.headless = headless
         self.timeout = timeout
@@ -148,11 +121,7 @@ class BrowserLogin:
             self.on_message(msg)
 
     def capture(self) -> TokenBundle:
-        """启动浏览器并等待登录，返回捕获到的 TokenBundle。
-
-        - 优先返回含 refresh_token 的完整 bundle（来自 /connect/token 响应或存储）
-        - 否则返回仅有 access_token 的 bundle（来自 API 请求头），refresh_token 为空
-        """
+        """标准 OAuth 授权码 + PKCE 流程：登录后返回 access + refresh。"""
         try:
             from playwright.sync_api import sync_playwright
         except ImportError as exc:
@@ -160,9 +129,23 @@ class BrowserLogin:
                 "未安装 playwright。请先执行：pip install playwright && playwright install chromium"
             ) from exc
 
+        # 生成 PKCE 参数与 state / nonce
+        verifier = oauth.generate_code_verifier()
+        challenge = oauth.compute_code_challenge(verifier)
+        state = secrets.token_urlsafe(16)
+        nonce = secrets.token_urlsafe(16)
+        auth_url = oauth.build_authorize_url(
+            state=state,
+            code_challenge=challenge,
+            nonce=nonce,
+            authorize_url=oauth.AUTHORIZE_URL,
+            client_id=oauth.CLIENT_ID,
+            redirect_uri=oauth.REDIRECT_URI,
+            scope=oauth.SCOPE,
+        )
+
         profile = self.profile_dir or Path.home() / ".forza-sync" / "browser_profile"
-        captured_access: List[str] = []
-        captured_bundles: List[TokenBundle] = []
+        captured: dict = {}
 
         with sync_playwright() as p:
             browser_type = "chromium"
@@ -202,159 +185,67 @@ class BrowserLogin:
 
             page = context.pages[0] if context.pages else context.new_page()
 
-            def _on_request(request) -> None:
-                """从发往 api.forza.net 的请求头中提取 access_token。"""
-                url = request.url
-                if "api.forza.net" not in url and GALLERY_API_HINT not in url:
-                    return
-                auth = request.headers.get("authorization") or ""
-                if auth.lower().startswith("bearer "):
-                    token = auth[7:].strip()
-                    if token and token not in captured_access:
-                        captured_access.append(token)
-                        self._say("已从 API 请求头捕获到 access_token ✅")
+            def _capture_code(url: str) -> bool:
+                """从 URL 提取并校验授权码；成功则记录并返回 True。"""
+                code = oauth.parse_redirect(url, state)
+                if code and "code" not in captured:
+                    captured["code"] = code
+                    self._say("已获取授权码 ✅")
+                    return True
+                return False
 
-            def _on_response(response) -> None:
-                """从 /connect/token 响应体中提取 access + refresh。"""
-                if TOKEN_ENDPOINT_HINT not in response.url:
+            def _on_request(request) -> None:
+                """在回调请求发出的第一时间捕获授权码，并阻止页面加载 forza.net。"""
+                if not request.url.startswith(oauth.REDIRECT_URI):
+                    return
+                if _capture_code(request.url):
+                    # 捕获后立即导航到空白页，避免加载 forza.net 回调页
+                    # （SPA 可能抢先消费一次性授权码）
+                    try:
+                        page.goto("about:blank", wait_until="commit", timeout=5000)
+                    except Exception:
+                        pass
+
+            def _on_frame_navigated(frame) -> None:
+                """兜底：主框架导航时检查回调 URL（request 事件漏检时使用）。"""
+                if frame != page.main_frame:
                     return
                 try:
-                    data = response.json()
+                    _capture_code(frame.url)
                 except Exception:
-                    try:
-                        data = json.loads(response.text())
-                    except Exception:
-                        return
-                bundle = parse_token_json(data)
-                if bundle:
-                    captured_bundles.append(bundle)
-                    self._say("已捕获到完整 Token（含 refresh_token）✅")
+                    pass
 
             page.on("request", _on_request)
-            page.on("response", _on_response)
+            page.on("framenavigated", _on_frame_navigated)
 
-            # 直接打开画廊页，进入后 SPA 会立即触发画廊 API 请求
-            self._say(f"打开画廊页 {GALLERY_PAGE_URL} 等待登录…（最多 {self.timeout} 秒）")
+            self._say(f"正在打开授权登录页…（最多 {self.timeout} 秒）")
             self._say("请在浏览器中登录你的 Xbox / Microsoft 账号（支持两步验证）")
-            page.goto(GALLERY_PAGE_URL, wait_until="domcontentloaded")
-
-            def _on_forza_origin() -> bool:
-                """当前页面是否还在 forza.net 域（登录页 login.live.com 期间不打扰）。"""
-                try:
-                    return page.url.startswith("https://forza.net")
-                except Exception:
-                    return False
+            _goto(page, auth_url)
 
             deadline = time.time() + self.timeout
-            last_enter = time.time()
-            while time.time() < deadline and not captured_access and not captured_bundles:
-                # 在 forza.net 域且一段时间无捕获时，重新进入画廊页触发请求
-                if _on_forza_origin() and time.time() - last_enter >= REENTER_INTERVAL:
-                    last_enter = time.time()
-                    self._say("重新进入画廊页以触发请求…")
-                    _goto(page, GALLERY_PAGE_URL)
+            while time.time() < deadline and "code" not in captured:
                 time.sleep(1)
-
-            # 关闭前先尝试从浏览器存储中兜底提取（关闭后无法访问）
-            storage = self._extract_from_storage(page, context)
 
             context.close()
 
-        if captured_bundles:
-            return captured_bundles[-1]
-
-        if captured_access:
-            access = captured_access[-1]
-            refresh = storage.refresh_token if storage else ""
-            bundle = TokenBundle(access_token=access, refresh_token=refresh, expires_in=0)
-            if not refresh:
-                self._say(
-                    "仅捕获到 access_token，未获取到 refresh_token（自动续期不可用）。"
-                    "如需自动续期，可在浏览器中触发一次刷新（产生 /connect/token 请求）"
-                    "或手动配置 refresh_token。"
-                )
-            return bundle
-
-        raise AuthError(
-            "在限定时间内未捕获到 Token。请确认已成功登录，并在浏览器中访问『我的画廊』"
-            "或刷新页面以触发 API 请求后重试。"
-        )
-
-    # ------------------------------------------------------------------
-    def _extract_from_storage(self, page, context) -> Optional[TokenBundle]:
-        """从浏览器 localStorage 与 Cookie 中兜底提取 token。"""
-        bundle = self._extract_local_storage(page)
-        if bundle:
-            return bundle
-        return self._extract_cookies(context)
-
-    @staticmethod
-    def _extract_local_storage(page) -> Optional[TokenBundle]:
-        try:
-            data = page.evaluate(
-                """() => {
-                    const out = {};
-                    for (let i = 0; i < localStorage.length; i++) {
-                        const k = localStorage.key(i);
-                        out[k] = localStorage.getItem(k);
-                    }
-                    return out;
-                }"""
+        if "code" not in captured:
+            raise AuthError(
+                "未在限定时间内完成登录（未获得授权码）。"
+                "请重试，并确保在弹出的浏览器窗口中完成 Microsoft 账号登录。"
             )
-        except Exception:
-            return None
 
-        access: Optional[str] = None
-        refresh: Optional[str] = None
-        for key, value in (data or {}).items():
-            if not isinstance(value, str) or not value:
-                continue
-            low = key.lower()
-            if not (("token" in low) or ("auth" in low) or ("refresh" in low)):
-                continue
-            parsed = None
-            try:
-                parsed = json.loads(value)
-            except Exception:
-                parsed = None
-
-            if isinstance(parsed, dict):
-                for k in ("access_token", "accessToken", "AccessToken"):
-                    if isinstance(parsed.get(k), str) and parsed[k]:
-                        access = parsed[k]
-                        break
-                for k in ("refresh_token", "refreshToken", "RefreshToken"):
-                    if isinstance(parsed.get(k), str) and parsed[k]:
-                        refresh = parsed[k]
-                        break
-            else:
-                # 裸字符串：键名含 refresh 且长度像 token 时视为 refresh_token
-                if "refresh" in low and refresh is None and len(value) > 20:
-                    refresh = value
-            if access and refresh:
-                break
-
-        if not access:
-            return None
-        return TokenBundle(access_token=access, refresh_token=refresh or "", expires_in=0)
-
-    @staticmethod
-    def _extract_cookies(context) -> Optional[TokenBundle]:
-        try:
-            cookies = context.cookies("https://api.forza.net")
-        except Exception:
-            return None
-        access: Optional[str] = None
-        refresh: Optional[str] = None
-        for c in cookies:
-            name = (c.get("name") or "").lower()
-            value = c.get("value") or ""
-            if not value:
-                continue
-            if "refresh" in name and refresh is None:
-                refresh = value
-            elif ("access" in name or "token" in name) and access is None:
-                access = value
-        if not access:
-            return None
-        return TokenBundle(access_token=access, refresh_token=refresh or "", expires_in=0)
+        # 用授权码 + code_verifier 换取令牌
+        self._say("正在交换授权码获取 Token…")
+        bundle = oauth.exchange_code(
+            code=captured["code"],
+            code_verifier=verifier,
+            client_id=oauth.CLIENT_ID,
+            redirect_uri=oauth.REDIRECT_URI,
+            token_url=oauth.TOKEN_URL,
+        )
+        if not bundle.refresh_token:
+            self._say(
+                "未获取到 refresh_token（自动续期不可用），将仅保存 access_token。"
+                "可稍后运行 `forza-sync token refresh` 或手动配置 refresh_token。"
+            )
+        return bundle

@@ -9,7 +9,7 @@ Forza Horizon 系列游戏内拍摄的照片不会保存在本地，而是上传
 - ✅ 支持 **FH5 / FH6** 两个游戏图库
 - ✅ **增量同步**：以照片 URL 中提取的唯一 ID（photo UUID）判断是否已下载，不依赖文件名
 - ✅ **Token 自动刷新**：access token 过期时自动用 refresh_token 刷新（OAuth2 refresh_token 流程），并持久化轮换后的新 token
-- ✅ **浏览器一键登录**：`forza-sync login` 打开浏览器，登录任意 Xbox/Microsoft 账号即自动捕获 token（支持两步验证）
+- ✅ **标准 OAuth2 一键登录**：`forza-sync login` 按标准授权码 + PKCE 流程（参考微软身份平台文档），浏览器登录任意 Xbox/Microsoft 账号即自动获取 token（支持两步验证）
 - ✅ **分页支持**：自动探测 API 分页参数（`page/pageSize`、`skip/take`、`offset/limit`、`pageNumber/pageSize`），支持超一页数据
 - ✅ 按 `游戏/年/月` 组织目录，文件名含时间、标题、照片 ID
 - ✅ 每张图旁保存 `.json` 元数据（游戏、标题、描述、上传时间、原图 URL）
@@ -51,8 +51,12 @@ forza-sync login --browser firefox   # Mozilla Firefox
 forza-sync login --browser chromium  # Playwright 自带 Chromium（未检测到系统浏览器时兜底）
 ```
 
-会弹出浏览器窗口并自动进入 `forza.net/myforza` 画廊页，登录你的 Xbox / Microsoft 账号（支持两步验证）。
-工具自动拦截画廊 API 请求头与 `/connect/token` 响应，把 `access_token` 与 `refresh_token` 保存到配置。
+会弹出浏览器窗口，按**标准 OAuth 2.0 授权码 + PKCE 流程**完成登录：
+1. 打开 `api.forza.net/connect/authorize` 授权端点（携带 PKCE `code_challenge` 与 `state`）
+2. 未登录时跳转微软登录页（`login.live.com`），登录你的 Xbox / Microsoft 账号（支持两步验证）
+3. 授权完成后工具捕获回调中的 `code`（不加载 `forza.net` 回调页，防止授权码被消费）
+4. 用 `code + code_verifier` 在令牌端点换取 `access_token` 与 `refresh_token` 并保存
+
 登录态持久化，之后 Token 过期会自动刷新。
 
 **方式 B：手动配置**
@@ -177,6 +181,32 @@ Authorization: Bearer <token>
   （前面那个 UUID 是游戏图库 ID，所有照片相同，不能用作照片 ID）
 - 分页参数未公开：工具首次同步会**自动探测**可用方案并沿用；若 API 变化，可将 `pagination` 手动设为 `page` / `skip` / `offset` / `page_number` 之一
 
+### 标准 OAuth 授权码登录（login）
+
+```
+GET https://api.forza.net/connect/authorize
+    ?client_id=nuxt-spa
+    &redirect_uri=https://forza.net/callback   # 该 client 白名单内的回调地址
+    &response_type=code
+    &scope=openid profile offline_access
+    &state=<随机>
+    &code_challenge=<PKCE S256>
+    &code_challenge_method=S256
+```
+
+外部身份提供方为 Microsoft（`login.live.com`）。登录完成回调携带 `code`，随后：
+
+```
+POST https://api.forza.net/connect/token
+grant_type=authorization_code
+code=<code>
+redirect_uri=https://forza.net/callback
+client_id=nuxt-spa
+code_verifier=<PKCE verifier>
+```
+
+> 注意：OpenIddict（ID2074）不允许在授权码交换请求中携带 `scope` 参数（scope 已在授权阶段绑定）。
+
 ### Token 刷新
 
 ```
@@ -218,7 +248,8 @@ forza_sync/
 ├── cli.py           # 命令行（config/login/sync/token/status）
 ├── config.py        # 配置加载 / 保存 / 校验
 ├── auth.py          # Token 管理 + OAuth2 refresh_token 自动刷新
-├── login.py         # Playwright 浏览器登录任意 Xbox 账号并捕获 Token
+├── oauth.py         # 标准 OAuth2 授权码 + PKCE 流程（授权URL / 授权码交换）
+├── login.py         # 浏览器驱动登录（系统 Edge/Chrome/Firefox 自动检测）
 ├── api_client.py    # Forza Gallery API 客户端 + 分页探测 + 401 自动重试
 ├── database.py      # SQLite 增量记录
 ├── naming.py        # 文件名生成与净化
