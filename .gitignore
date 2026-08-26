@@ -1,3 +1,6 @@
+# 编辑器
+.vscode/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -8,6 +11,8 @@ dist/
 .venv/
 venv/
 .pytest_cache/
+.cargo
+.vscode
 
 # 工具运行产物
 *.part
@@ -16,3 +21,10 @@ config.json
 *.db-wal
 *.db-shm
 .DS_Store
+
+# Web / 桌面构建产物
+web/node_modules/
+web/dist/
+web/app-icon.png
+web/src-tauri/target/
+web/src-tauri/gen/

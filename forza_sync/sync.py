@@ -18,7 +18,7 @@ from .api_client import ForzaGalleryClient, Photo
 from .auth import TokenManager
 from .config import Config
 from .database import PhotoDatabase
-from .downloader import ImageDownloader, save_metadata
+from .downloader import ImageDownloader
 from .errors import AuthError, ForzaSyncError
 from .naming import build_relative_path, extract_photo_id
 
@@ -77,8 +77,13 @@ class SyncService:
         *,
         force: bool = False,
         max_photos: Optional[int] = None,
+        progress_cb=None,
     ) -> SyncStats:
-        """同步指定游戏的全部照片。"""
+        """同步指定游戏的全部照片。
+
+        :param progress_cb: 可选进度回调，签名 ``(game, done, total, stats)``，
+            每完成一张（或每 10 张）调用一次，用于 Web 界面实时展示进度。
+        """
         stats = SyncStats()
 
         # 确保 access token 有效（必要时自动刷新）
@@ -130,6 +135,8 @@ class SyncService:
                         stats.skipped,
                         stats.failed,
                     )
+                if progress_cb is not None:
+                    progress_cb(game, done, total, stats)
 
         # 记录同步状态
         self.db.update_sync_state(
@@ -176,18 +183,7 @@ class SyncService:
         # 下载原图
         self.downloader.download(photo.photo_url, dest)
 
-        # 保存元数据
-        save_metadata(
-            image_path=dest,
-            game=game,
-            title=title,
-            description=photo.description,
-            submission_time_utc=photo.submission_time_utc,
-            url=photo.photo_url,
-            local_path=str(dest),
-        )
-
-        # 入库
+        # 入库（照片详细信息直接存入数据库，不再生成 .json 元数据文件）
         self.db.upsert_photo(
             photo_id=photo_id,
             game=game,

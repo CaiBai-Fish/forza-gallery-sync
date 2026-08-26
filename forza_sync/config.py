@@ -16,8 +16,26 @@ from typing import Any, Optional
 
 from .errors import ConfigError
 
-# 当前支持的 Forza 游戏
-SUPPORTED_GAMES = ("FH5", "FH6")
+# 游戏代码 → 显示名（默认英文全称，供 CLI / 后端调试；前端 UI 优先使用 i18n 翻译键）
+GAME_DISPLAY_NAMES = {
+    "FH6": "Forza Horizon 6",
+    "FM": "Forza Motorsport",
+    "FH5": "Forza Horizon 5",
+    "FH4": "Forza Horizon 4",
+    "FM7": "Forza Motorsport 7",
+}
+
+# 当前支持的 Forza 游戏（代码）
+SUPPORTED_GAMES = tuple(GAME_DISPLAY_NAMES.keys())
+
+# 默认启用游戏
+DEFAULT_ENABLED_GAMES = ("FH5", "FH6")
+
+
+def game_display_name(game_code: str) -> str:
+    """返回游戏代码对应的显示名，未知代码原样返回。"""
+    return GAME_DISPLAY_NAMES.get(game_code, game_code)
+
 
 DEFAULT_PAGE_SIZE = 50
 # 分页方案：auto（自动探测）/ page / skip / offset / page_number / none
@@ -60,7 +78,7 @@ class Config:
     workers: int = 4
     verify_ssl: bool = True
     user_agent: str = "forza-sync/0.1.0"
-    enabled_games: list = field(default_factory=lambda: list(SUPPORTED_GAMES))
+    enabled_games: list = field(default_factory=lambda: list(DEFAULT_ENABLED_GAMES))
 
     # ---- 反序列化 ----
     @classmethod

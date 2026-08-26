@@ -1,17 +1,15 @@
-"""图片下载与元数据保存。
+"""图片下载。
 
 - 原子写入：先下载到临时文件，完成后重命名，避免半截文件
 - 失败重试：网络异常 / 空内容按指数退避重试
-- 元数据：每张图旁生成同名 .json，方便未来整理
+- 元数据由同步服务直接写入 SQLite 数据库（不再生成 .json 文件）
 """
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import time
-from datetime import datetime, timezone
 from pathlib import Path
 from typing import Optional
 
@@ -82,30 +80,3 @@ class ImageDownloader:
                 time.sleep(min(2**attempt, 10))
 
         raise last_exc if last_exc else DownloadError(f"下载失败: {url}")
-
-
-def save_metadata(
-    *,
-    image_path: Path,
-    game: str,
-    title: Optional[str],
-    description: Optional[str],
-    submission_time_utc: str,
-    url: str,
-    local_path: Optional[str] = None,
-) -> Path:
-    """在图片旁保存 .json 元数据，返回元数据文件路径。"""
-    meta = {
-        "game": game,
-        "title": title,
-        "description": description,
-        "submissionTimeUtc": submission_time_utc,
-        "url": url,
-        "localPath": str(local_path) if local_path else str(image_path),
-        "downloadedAt": datetime.now(timezone.utc).isoformat(),
-    }
-    meta_path = image_path.with_suffix(".json")
-    meta_path.write_text(
-        json.dumps(meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-    )
-    return meta_path

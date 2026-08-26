@@ -400,7 +400,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     # sync
     p_sync = sub.add_parser("sync", help="执行照片同步")
-    p_sync.add_argument("--game", default=None, help="指定游戏，逗号分隔，如 FH5,FH6；缺省同步所有启用游戏")
+    p_sync.add_argument("--game", default=None, help="指定游戏，逗号分隔，如 FH6,FM,FH5,FH4,FM7；缺省同步所有启用游戏")
     p_sync.add_argument("--force", action="store_true", help="强制重新下载（即使数据库中已存在）")
     p_sync.add_argument("--max", type=int, default=None, help="最多处理前 N 张照片（调试用）")
     p_sync.add_argument("--page-size", type=int, default=None, help="覆盖每页数量设置")

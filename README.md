@@ -6,13 +6,13 @@ Forza Horizon 系列游戏内拍摄的照片不会保存在本地，而是上传
 
 ## 功能特性
 
-- ✅ 支持 **FH5 / FH6** 两个游戏图库
+- ✅ 支持 **FH6 / FM / FH5 / FH4 / FM7** 五个游戏图库（显示名：Forza Horizon 6 / Forza Motorsport / Forza Horizon 5 / Forza Horizon 4 / Forza Motorsport 7）
 - ✅ **增量同步**：以照片 URL 中提取的唯一 ID（photo UUID）判断是否已下载，不依赖文件名
 - ✅ **Token 自动刷新**：access token 过期时自动用 refresh_token 刷新（OAuth2 refresh_token 流程），并持久化轮换后的新 token
 - ✅ **标准 OAuth2 一键登录**：`forza-sync login` 按标准授权码 + PKCE 流程（参考微软身份平台文档），浏览器登录任意 Xbox/Microsoft 账号即自动获取 token（支持两步验证）
 - ✅ **分页支持**：自动探测 API 分页参数（`page/pageSize`、`skip/take`、`offset/limit`、`pageNumber/pageSize`），支持超一页数据
 - ✅ 按 `游戏/年/月` 组织目录，文件名含时间、标题、照片 ID
-- ✅ 每张图旁保存 `.json` 元数据（游戏、标题、描述、上传时间、原图 URL）
+- ✅ 照片详细信息（游戏、标题、描述、上传时间、原图 URL）直接存入 SQLite 数据库
 - ✅ 多线程并发下载、失败重试、单张失败不影响整体
 - ✅ 命令行：`config`（初始化）/ `sync`（同步）/ `status`（状态）
 - ✅ 配置与代码分离（配置文件默认在用户配置目录）
@@ -105,6 +105,44 @@ forza-sync token
 forza-sync token refresh
 ```
 
+## 管理控制台（桌面应用）
+
+内置一个**桌面窗口化风格**的管理界面（Vue 3 + Tauri + PyO3 内嵌 Python），
+在独立桌面窗口中完成配置、登录、同步与照片浏览，无需手敲命令。
+
+> 架构说明：Python 解释器通过 PyO3 直接嵌入桌面应用进程，前端经 Tauri
+> 原生命令调用，**无 HTTP 服务、无端口**。
+
+界面包含四个模块：
+
+| 窗口 | 功能 |
+| --- | --- |
+| 📊 仪表盘 | 照片统计、按游戏/月份分布、Token 状态、最近同步记录、快速操作 |
+| 🖼️ 照片库 | 浏览已同步照片（网格 + 详情）、按游戏/月份筛选、搜索、分页 |
+| 🔄 同步 | 选择游戏、配置参数、启动/停止同步、实时进度与失败明细 |
+| ⚙️ 设置 | 浏览器一键登录、Token 刷新、下载目录 / 并发 / 分页等配置 |
+
+### 开发调试（Tauri）
+
+```bash
+cd web
+npm install
+npm run tauri:dev         # 以调试模式启动桌面窗口
+```
+
+> 需要 conda 环境 `FGS`（Python 3.13）。可通过环境变量
+> `FORZA_SYNC_PYTHON_HOME` / `FORZA_SYNC_PROJECT_ROOT` 覆盖默认路径。
+
+### 打包成独立 exe（无需 Python / Node 环境）
+
+```bash
+cd web
+npm run tauri:build       # 安装包输出到 web/src-tauri/target/release/bundle/
+```
+
+打包要求：Rust 工具链（rustup + stable-msvc）、Visual Studio C++ 构建工具、
+WebView2 Runtime（Win10/11 自带）、Node.js。
+
 ## 目录结构
 
 ```
@@ -112,8 +150,7 @@ ForzaPhotos/
 ├── FH5/
 │   └── 2024/
 │       └── 02/
-│           ├── 20240216_112427_Forza_442a6e68.jpg
-│           └── 20240216_112427_Forza_442a6e68.json   # 元数据
+│           └── 20240216_112427_Forza_442a6e68.jpg
 └── FH6/
     └── 2026/
         └── 08/
@@ -143,7 +180,7 @@ ForzaPhotos/
 | `retries` | 失败重试次数 | 3 |
 | `workers` | 并发下载线程数 | 4 |
 | `verify_ssl` | 是否校验 SSL | `true` |
-| `enabled_games` | 启用的游戏列表 | `["FH5","FH6"]` |
+| `enabled_games` | 启用的游戏列表 | `["FH5","FH6"]`（可含 FH6/FM/FH4/FM7） |
 
 可用 `forza-sync config set <键> <值>` 修改单项，例如：
 
@@ -155,7 +192,7 @@ forza-sync config set page_size 100
 ## API 说明
 
 ```
-GET https://api.forza.net/api/v4/me/gallery/{FH5|FH6}
+GET https://api.forza.net/api/v4/me/gallery/{FH6|FM|FH5|FH4|FM7}
 Authorization: Bearer <token>
 ```
 
@@ -266,13 +303,6 @@ forza_sync/
 pip install pytest
 pytest
 ```
-
-## 后续扩展（预留）
-
-- **Windows GUI**：图形界面
-- **NAS 自动同步**：同步后增量推送
-- **定时任务**：周期性自动同步（配合 `login` + 自动刷新可长期无人值守）
-- **更多 Forza 版本**：扩展 `SUPPORTED_GAMES`
 
 ## 免责声明
 

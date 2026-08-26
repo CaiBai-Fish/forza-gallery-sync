@@ -53,10 +53,12 @@ class TestProcessOne:
         rel = Path(row["local_path"]).relative_to(service.download_dir)
         assert rel.parts == ("FH5", "2024", "02", "20240216_112427_符华_442a6e68.jpg")
 
-        # 图片与元数据均已落盘
+        # 图片已落盘；元数据保存在数据库（不再生成 .json）
         assert Path(row["local_path"]).exists()
-        meta = Path(row["local_path"]).with_suffix(".json")
-        assert meta.exists()
+        assert row["title"] == "符华"
+        assert row["description"] == "desc"
+        assert row["submission_time_utc"] == "2024-02-16T11:24:27Z"
+        assert row["url"] == "https://x/442a6e68.jpg"
 
     def test_skips_existing_in_db(self, tmp_path, monkeypatch):
         service, db = _make_service(tmp_path, monkeypatch)
