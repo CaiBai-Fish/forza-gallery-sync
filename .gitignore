@@ -25,6 +25,7 @@ config.json
 # Web / 桌面构建产物
 web/node_modules/
 web/dist/
+web/runtime/
 web/app-icon.png
 web/src-tauri/target/
 web/src-tauri/gen/

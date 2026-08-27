@@ -1,0 +1,93 @@
+name: build-release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: build-release-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  publish-tauri:
+    runs-on: windows-latest
+    env:
+      FORZA_SYNC_PROJECT_ROOT: ${{ github.workspace }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: web/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache Rust
+        uses: swatinem/rust-cache@v2
+        with:
+          workspaces: web/src-tauri
+
+      - name: Install Python dependencies
+        run: pip install -r requirements.txt -r requirements-login.txt .
+
+      - name: Prepare bundled Python runtime
+        shell: pwsh
+        run: |
+          $python = (Get-Command python).Source
+          "PYO3_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          $pyHome = Split-Path $python
+          $runtime = Join-Path $env:GITHUB_WORKSPACE "web/runtime"
+          if (Test-Path $runtime) {
+            Remove-Item $runtime -Recurse -Force
+          }
+          New-Item -ItemType Directory -Force $runtime | Out-Null
+
+          Copy-Item "$pyHome/python3.dll" "$runtime/python3.dll" -Force
+          Copy-Item "$pyHome/python313.dll" "$runtime/python313.dll" -Force
+          foreach ($dll in @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")) {
+            if (Test-Path "$pyHome/$dll") {
+              Copy-Item "$pyHome/$dll" "$runtime/$dll" -Force
+            } elseif (Test-Path "C:/Windows/System32/$dll") {
+              Copy-Item "C:/Windows/System32/$dll" "$runtime/$dll" -Force
+            }
+          }
+
+          Copy-Item "$pyHome/Lib" "$runtime/Lib" -Recurse -Force
+          Copy-Item "$pyHome/DLLs" "$runtime/DLLs" -Recurse -Force
+          Copy-Item "$pyHome/python3.dll" "$runtime/DLLs/python3.dll" -Force
+          Copy-Item "$pyHome/python313.dll" "$runtime/DLLs/python313.dll" -Force
+          New-Item -ItemType Directory -Force "$runtime/Library" | Out-Null
+
+      - name: Install frontend dependencies
+        working-directory: web
+        run: npm ci
+
+      - name: Build and publish Tauri app
+        uses: tauri-apps/tauri-action@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          projectPath: web
+          tagName: build-${{ github.run_number }}
+          releaseName: Forza Gallery Sync build ${{ github.run_number }}
+          releaseBody: |
+            Automatic build from commit ${{ github.sha }}.
+          releaseDraft: false
+          prerelease: false

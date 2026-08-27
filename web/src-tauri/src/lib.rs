@@ -6,6 +6,7 @@
 
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+use std::path::Path;
 use std::sync::Arc;
 
 use pyo3::prelude::*;
@@ -18,30 +19,50 @@ struct PyState {
     module: Py<PyModule>,
 }
 
-fn project_root() -> String {
-    std::env::var("FORZA_SYNC_PROJECT_ROOT")
-        .unwrap_or_else(|_| "E:/sourse/ForzaGallerySync".into())
+fn project_root() -> Option<String> {
+    if let Ok(root) = std::env::var("FORZA_SYNC_PROJECT_ROOT") {
+        return Some(root);
+    }
+    let mut dir = std::env::current_exe().ok()?.parent()?.to_path_buf();
+    loop {
+        if dir.join("forza_sync").join("__init__.py").exists() {
+            return Some(dir.to_string_lossy().into_owned());
+        }
+        if !dir.pop() {
+            return None;
+        }
+    }
 }
 
-fn python_home() -> String {
-    std::env::var("FORZA_SYNC_PYTHON_HOME")
-        .unwrap_or_else(|_| "E:/conda/envs/FGS".into())
+/// 定位 Python 运行时目录。优先级：
+/// 1. 环境变量 `FORZA_SYNC_PYTHON_HOME`
+/// 2. 随包内嵌运行时（Windows 上 resource_dir = exe 目录，运行时在 `exe 目录/python/`）
+/// 3. 回退本地开发用 conda 环境
+fn python_home(resource_dir: Option<&Path>) -> String {
+    if let Ok(home) = std::env::var("FORZA_SYNC_PYTHON_HOME") {
+        return home;
+    }
+    if let Some(dir) = resource_dir {
+        let embedded = dir.join("python");
+        if embedded.join("Lib").exists() {
+            return embedded.to_string_lossy().into_owned();
+        }
+    }
+    "E:/conda/envs/FGS".into()
 }
 
 /// 初始化嵌入式 Python 解释器并导入 service 模块。
-fn init_python() -> Result<Py<PyModule>, String> {
+fn init_python(resource_dir: Option<&Path>) -> Result<Py<PyModule>, String> {
     // 嵌入式 Python 需显式指定 home（含标准库 Lib/ 与 site-packages），
     // 否则解释器无法定位 Lib 目录。
-    let home = python_home();
+    let home = python_home(resource_dir);
     std::env::set_var("PYTHONHOME", &home);
     std::env::set_var("PYTHONNOUSERSITE", "1");
 
-    // conda 环境的扩展模块（如 _sqlite3.pyd）依赖 Library/bin 下的 DLL
-    // （sqlite3.dll 等），需加入 DLL 搜索路径，否则 import 会失败。
-    let conda_bin = format!("{home}/Library/bin");
-    let conda_root = home.clone();
+    // 扩展模块依赖的 DLL 搜索目录（conda: Library/bin；内嵌 python.org: DLLs）
+    let search_dirs = vec![format!("{home}/Library/bin"), format!("{home}/DLLs")];
     let path = std::env::var("PATH").unwrap_or_default();
-    let mut parts = vec![conda_bin.as_str(), conda_root.as_str()];
+    let mut parts: Vec<&str> = search_dirs.iter().map(|s| s.as_str()).collect();
     if !path.is_empty() {
         parts.push(path.as_str());
     }
@@ -49,18 +70,23 @@ fn init_python() -> Result<Py<PyModule>, String> {
 
     pyo3::prepare_freethreaded_python();
     Python::with_gil(|py| {
-        // 把 conda 的 Library/bin 加入 DLL 搜索目录，供 _sqlite3 等扩展模块
-        // 找到其依赖的 sqlite3.dll（os.add_dll_directory 是官方可靠方式）
+        // 把存在的 DLL 目录加入搜索（os.add_dll_directory 是官方可靠方式），
+        // 供 _sqlite3 等扩展模块找到其依赖的 sqlite3.dll 等
         let os_mod = py.import("os").map_err(|e| e.to_string())?;
-        let conda_bin = format!("{}/Library/bin", python_home());
-        os_mod
-            .call_method1("add_dll_directory", (conda_bin,))
-            .map_err(|e| e.to_string())?;
+        for d in &search_dirs {
+            if Path::new(d).exists() {
+                os_mod
+                    .call_method1("add_dll_directory", (d,))
+                    .map_err(|e| e.to_string())?;
+            }
+        }
 
         let sys = py.import("sys").map_err(|e| e.to_string())?;
         let path = sys.getattr("path").map_err(|e| e.to_string())?;
-        path.call_method1("insert", (0, project_root()))
-            .map_err(|e| e.to_string())?;
+        if let Some(root) = project_root() {
+            path.call_method1("insert", (0, root))
+                .map_err(|e| e.to_string())?;
+        }
         let module = py.import("forza_sync.service").map_err(|e| e.to_string())?;
         Ok(module.into())
     })
@@ -311,7 +337,9 @@ pub fn run() {
             backend_open_path,
         ])
         .setup(|app| {
-            let module = init_python().map_err(|e| format!("初始化 Python 失败: {e}"))?;
+            let resource_dir = app.path().resource_dir().ok();
+            let module = init_python(resource_dir.as_deref())
+                .map_err(|e| format!("初始化 Python 失败: {e}"))?;
             app.manage(Arc::new(PyState { module }));
             Ok(())
         })
