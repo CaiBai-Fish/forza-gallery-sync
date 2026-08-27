@@ -79,15 +79,35 @@ jobs:
         working-directory: web
         run: npm ci
 
+      - name: Compute version, tag and release body
+        id: release-meta
+        shell: pwsh
+        run: |
+          # 版本号取自 tauri.conf.json，与打包版本保持一致
+          $cfg = Get-Content "web/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
+          $version = $cfg.version
+          $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+
+          # tag = 当前版本号 + 编译的 commit 号，如 0.1.0-a1b2c3d
+          "VERSION=$version"       | Out-File -FilePath $env:GITHUB_ENV -Append
+          "SHORT_SHA=$shortSha"    | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_TAG=$version-$shortSha" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+          # releaseBody = 该 commit 的提交详情（标题 + 正文）
+          $body = git log -1 --format=%B $env:GITHUB_SHA
+          "RELEASE_BODY<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $body | Out-File -FilePath $env:GITHUB_ENV -Append
+          "EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Build and publish Tauri app
         uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: web
-          tagName: build-${{ github.run_number }}
-          releaseName: Forza Gallery Sync build ${{ github.run_number }}
+          tagName: ${{ env.RELEASE_TAG }}
+          releaseName: Forza Gallery Sync ${{ env.VERSION }}
           releaseBody: |
-            Automatic build from commit ${{ github.sha }}.
+            ${{ env.RELEASE_BODY }}
           releaseDraft: false
           prerelease: false

@@ -3,8 +3,10 @@
 //! 架构：Tauri（Rust + WebView2）窗口加载 Vue 前端，通过 PyO3 在进程内
 //! 嵌入 Python 解释器，直接调用 :mod:`forza_sync.service` 的纯函数。
 //! 完全无 HTTP 服务、无端口、无网络监听。
-
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+//!
+//! 使用 Windows 控制台子系统（不设置 `windows_subsystem`），同一 exe 支持两种模式：
+//! - 无命令行参数：启动 GUI 窗口（双击启动、独占控制台时自动隐藏，不弹出黑色窗口）
+//! - 带命令行参数：headless 命令行模式，供脚本 / 定时任务在无窗口下使用
 
 use std::path::Path;
 use std::sync::Arc;
@@ -317,7 +319,259 @@ fn backend_open_path(path: String) -> Result<(), String> {
 // 应用入口
 // ---------------------------------------------------------------------------
 
+/// 隐藏独立控制台窗口。仅当进程独占该控制台（即双击启动、Windows 自动
+/// 分配的新控制台）时隐藏；从终端 / 脚本启动时共享父控制台，不隐藏，
+/// 以便命令行日志可见。
+#[cfg(windows)]
+struct ConsoleHandles {
+    _stdin: Option<std::fs::File>,
+    _stdout: Option<std::fs::File>,
+    _stderr: Option<std::fs::File>,
+}
+
+#[cfg(windows)]
+fn attach_console_if_available() -> ConsoleHandles {
+    use std::ffi::c_void;
+    use std::fs::OpenOptions;
+    use std::os::windows::io::AsRawHandle;
+
+    extern "system" {
+        fn AttachConsole(dw_process_id: u32) -> i32;
+        fn GetStdHandle(n_std_handle: u32) -> *mut c_void;
+        fn SetStdHandle(n_std_handle: u32, h_handle: *mut c_void) -> i32;
+    }
+
+    const ATTACH_PARENT_PROCESS: u32 = 0xFFFF_FFFF;
+    const STD_INPUT_HANDLE: u32 = 0xFFFF_FFF6;
+    const STD_OUTPUT_HANDLE: u32 = 0xFFFF_FFF5;
+    const STD_ERROR_HANDLE: u32 = 0xFFFF_FFF4;
+
+    let is_invalid = |handle: *mut c_void| handle.is_null() || handle as isize == -1;
+
+    unsafe {
+        let existing_stdout = GetStdHandle(STD_OUTPUT_HANDLE);
+        let existing_stderr = GetStdHandle(STD_ERROR_HANDLE);
+
+        if is_invalid(existing_stdout) || is_invalid(existing_stderr) {
+            AttachConsole(ATTACH_PARENT_PROCESS);
+        }
+    }
+
+    let existing_stdout = unsafe { GetStdHandle(STD_OUTPUT_HANDLE) };
+    let existing_stderr = unsafe { GetStdHandle(STD_ERROR_HANDLE) };
+    let existing_stdin = unsafe { GetStdHandle(STD_INPUT_HANDLE) };
+
+    let stdout = if is_invalid(existing_stdout) {
+        OpenOptions::new().write(true).open("CONOUT$").ok()
+    } else {
+        None
+    };
+    let stderr = if is_invalid(existing_stderr) {
+        stdout.as_ref().and_then(|file| file.try_clone().ok())
+    } else {
+        None
+    };
+    let stdin = if is_invalid(existing_stdin) {
+        OpenOptions::new().read(true).open("CONIN$").ok()
+    } else {
+        None
+    };
+
+    unsafe {
+        if let Some(file) = &stdout {
+            SetStdHandle(STD_OUTPUT_HANDLE, file.as_raw_handle() as *mut c_void);
+        }
+        if let Some(file) = &stderr {
+            SetStdHandle(STD_ERROR_HANDLE, file.as_raw_handle() as *mut c_void);
+        }
+        if let Some(file) = &stdin {
+            SetStdHandle(STD_INPUT_HANDLE, file.as_raw_handle() as *mut c_void);
+        }
+    }
+
+    ConsoleHandles {
+        _stdin: stdin,
+        _stdout: stdout,
+        _stderr: stderr,
+    }
+}
+
+/// 当前控制台输出代码页对应的 Python 编码名。
+/// PowerShell/cmd 在中文系统默认使用 GBK（cp936），直接以 UTF-8 写入会乱码；
+/// 按控制台代码页编码可自动适配（GBK 控制台→gbk，UTF-8 控制台→utf-8）。
+#[cfg(windows)]
+fn console_output_encoding() -> String {
+    extern "system" {
+        fn GetConsoleOutputCP() -> u32;
+    }
+    unsafe {
+        let cp = GetConsoleOutputCP();
+        match cp {
+            0 | 65001 => "utf-8".to_string(),
+            _ => format!("cp{cp}"),
+        }
+    }
+}
+
+#[cfg(windows)]
+fn configure_python_stdio(py: Python<'_>, console: &ConsoleHandles) -> PyResult<()> {
+    use std::os::windows::io::AsRawHandle;
+
+    let sys = py.import("sys")?;
+    let enc = console_output_encoding();
+
+    let output_handle = console
+        ._stdout
+        .as_ref()
+        .map(|file| file.as_raw_handle() as i64)
+        .or_else(|| {
+            let handle = std::io::stdout().as_raw_handle() as i64;
+            if handle != 0 && handle != -1 {
+                Some(handle)
+            } else {
+                None
+            }
+        });
+
+    if let Some(handle) = output_handle {
+        let msvcrt = py.import("msvcrt")?;
+        let io = py.import("io")?;
+        if let Ok(old_stdout) = sys.getattr("stdout") {
+            let _ = old_stdout.call_method0("detach");
+        }
+        if let Ok(old_stderr) = sys.getattr("stderr") {
+            let _ = old_stderr.call_method0("detach");
+        }
+        let fd = msvcrt.call_method1("open_osfhandle", (handle, 0x4001))?;
+        let raw = io.call_method1("FileIO", (fd, "w"))?;
+        let stream = io.call_method1("TextIOWrapper", (raw, enc.as_str()))?;
+        sys.setattr("stdout", &stream)?;
+        sys.setattr("stderr", &stream)?;
+    }
+
+    let input_handle = console
+        ._stdin
+        .as_ref()
+        .map(|file| file.as_raw_handle() as i64)
+        .or_else(|| {
+            let handle = std::io::stdin().as_raw_handle() as i64;
+            if handle != 0 && handle != -1 {
+                Some(handle)
+            } else {
+                None
+            }
+        });
+
+    if let Some(handle) = input_handle {
+        let msvcrt = py.import("msvcrt")?;
+        let io = py.import("io")?;
+        if let Ok(old_stdin) = sys.getattr("stdin") {
+            let _ = old_stdin.call_method0("detach");
+        }
+        let fd = msvcrt.call_method1("open_osfhandle", (handle, 0x4000))?;
+        let raw = io.call_method1("FileIO", (fd, "r"))?;
+        let stream = io.call_method1("TextIOWrapper", (raw, enc.as_str()))?;
+        sys.setattr("stdin", stream)?;
+    }
+
+    Ok(())
+}
+
+/// headless 命令行模式：初始化嵌入式 Python 并运行 CLI（forza_sync.cli.main），
+/// 返回进程退出码。复用 init_python 的环境准备，因此 CLI 与 GUI 使用相同的
+/// 运行时定位逻辑。
+#[cfg(windows)]
+fn run_cli(args: &[String], resource_dir: Option<&Path>, console: &ConsoleHandles) -> i32 {
+    let run = || -> Result<i32, String> {
+        // 环境准备 + 导入 service 模块（同时验证 Python 可正常启动）
+        init_python(resource_dir)?;
+        Python::with_gil(|py| {
+            configure_python_stdio(py, console).map_err(|e| e.to_string())?;
+            let sys = py.import("sys").map_err(|e| e.to_string())?;
+            // sys.argv = ["forza-sync", ...args]
+            let mut argv = Vec::with_capacity(args.len() + 1);
+            argv.push("forza-sync".to_string());
+            argv.extend_from_slice(args);
+            sys.setattr("argv", argv).map_err(|e| e.to_string())?;
+
+            let cli = py.import("forza_sync.cli").map_err(|e| e.to_string())?;
+            let main = cli.getattr("main").map_err(|e| e.to_string())?;
+            // argparse 的 --help/--version 会抛出 SystemExit，需按退出码处理
+            let result = main.call1((args.to_vec(),));
+            let _ = sys.getattr("stdout").and_then(|stream| stream.call_method0("flush"));
+            let _ = sys.getattr("stderr").and_then(|stream| stream.call_method0("flush"));
+            let code: i32 = match result {
+                Ok(value) => value.extract::<i32>().map_err(|e| e.to_string())?,
+                Err(err) if err.is_instance_of::<pyo3::exceptions::PySystemExit>(py) => {
+                    err.value(py)
+                        .getattr("code")
+                        .ok()
+                        .and_then(|c| c.extract::<i32>().ok())
+                        .unwrap_or(0)
+                }
+                Err(err) => return Err(err.to_string()),
+            };
+            Ok(code)
+        })
+    };
+    match run() {
+        Ok(code) => code,
+        Err(e) => {
+            eprintln!("初始化 Python 失败: {e}");
+            1
+        }
+    }
+}
+
+/// 隐藏本进程独占的控制台窗口。仅当进程独占该控制台（双击启动、Windows 自动
+/// 分配的新控制台，或定时任务无终端上下文）时隐藏；从终端 / 脚本启动时共享
+/// 父控制台，不隐藏，以保证命令行输出同步可见。
+#[cfg(windows)]
+fn hide_owned_console() {
+    use std::ffi::c_void;
+
+    extern "system" {
+        fn GetConsoleWindow() -> *mut c_void;
+        fn GetConsoleProcessList(lpdw_process_list: *mut u32, dw_process_count: u32) -> u32;
+        fn ShowWindow(h_wnd: *mut c_void, n_cmd_show: i32) -> i32;
+    }
+
+    const SW_HIDE: i32 = 0;
+
+    unsafe {
+        let hwnd = GetConsoleWindow();
+        if hwnd.is_null() {
+            return;
+        }
+        let mut pids = [0u32; 4];
+        // 共享该控制台的进程数：<=1 表示本进程独占（非终端启动）
+        let count = GetConsoleProcessList(pids.as_mut_ptr(), pids.len() as u32);
+        if count <= 1 {
+            ShowWindow(hwnd, SW_HIDE);
+        }
+    }
+}
+
 pub fn run() {
+    // 双击启动（独占控制台）时立即隐藏控制台窗口，避免 GUI 模式弹出黑色窗口；
+    // 从终端启动（共享控制台）则保留，保证 CLI 输出同步可见。
+    #[cfg(windows)]
+    hide_owned_console();
+
+    let args: Vec<String> = std::env::args().skip(1).collect();
+
+    // headless 命令行模式：带参数时不启动 GUI，直接运行 Python CLI
+    if !args.is_empty() {
+        let resource_dir = std::env::current_exe()
+            .ok()
+            .and_then(|p| p.parent().map(|d| d.to_path_buf()));
+        #[cfg(windows)]
+        let _console = attach_console_if_available();
+        let code = run_cli(&args, resource_dir.as_deref(), &_console);
+        std::process::exit(code);
+    }
+
+    // GUI 模式：若独占控制台已在 run() 开头隐藏；从终端启动则保留
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![
@@ -341,6 +595,10 @@ pub fn run() {
             let module = init_python(resource_dir.as_deref())
                 .map_err(|e| format!("初始化 Python 失败: {e}"))?;
             app.manage(Arc::new(PyState { module }));
+            if let Some(window) = app.get_webview_window("main") {
+                let _ = window.show();
+                let _ = window.set_focus();
+            }
             Ok(())
         })
         .build(tauri::generate_context!())

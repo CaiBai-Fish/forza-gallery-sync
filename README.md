@@ -9,12 +9,12 @@ Forza Horizon 系列游戏内拍摄的照片不会保存在本地，而是上传
 - ✅ 支持 **FH6 / FM / FH5 / FH4 / FM7** 五个游戏图库（显示名：Forza Horizon 6 / Forza Motorsport / Forza Horizon 5 / Forza Horizon 4 / Forza Motorsport 7）
 - ✅ **增量同步**：以照片 URL 中提取的唯一 ID（photo UUID）判断是否已下载，不依赖文件名
 - ✅ **Token 自动刷新**：access token 过期时自动用 refresh_token 刷新（OAuth2 refresh_token 流程），并持久化轮换后的新 token
-- ✅ **标准 OAuth2 一键登录**：`forza-sync login` 按标准授权码 + PKCE 流程（参考微软身份平台文档），浏览器登录任意 Xbox/Microsoft 账号即自动获取 token（支持两步验证）
+- ✅ **标准 OAuth2 一键登录**：`forza-gallery-sync login` 按标准授权码 + PKCE 流程（参考微软身份平台文档），浏览器登录任意 Xbox/Microsoft 账号即自动获取 token（支持两步验证）
 - ✅ **分页支持**：自动探测 API 分页参数（`page/pageSize`、`skip/take`、`offset/limit`、`pageNumber/pageSize`），支持超一页数据
 - ✅ 按 `游戏/年/月` 组织目录，文件名含时间、标题、照片 ID
 - ✅ 照片详细信息（游戏、标题、描述、上传时间、原图 URL）直接存入 SQLite 数据库
 - ✅ 多线程并发下载、失败重试、单张失败不影响整体
-- ✅ 命令行：`config`（初始化）/ `sync`（同步）/ `status`（状态）
+- ✅ 命令行：`config`（配置）/ `login`（浏览器一键登录）/ `sync`（同步）/ `token`（Token 管理）/ `status`（状态）
 - ✅ 配置与代码分离（配置文件默认在用户配置目录）
 
 ## 安装
@@ -36,6 +36,11 @@ pip install -r requirements-login.txt
 #   $env:PLAYWRIGHT_DOWNLOAD_HOST='https://npmmirror.com/mirrors/playwright/'
 ```
 
+> **命令名说明**：通过 `pip install -e .` 安装后，命令行命令为 **`forza-sync`**；
+> 直接使用编译打包的 exe 时，程序名为 **`forza-gallery-sync`**（Windows 下为
+> `forza-gallery-sync.exe`），命令行参数与用法完全一致。下文示例统一以打包程序的
+> **`forza-gallery-sync`** 为准。
+
 ## 快速开始
 
 ### 1. 获取 Token（任选其一）
@@ -44,13 +49,13 @@ pip install -r requirements-login.txt
 
 ```bash
 # 默认：自动检测系统浏览器（Edge → Chrome → Firefox），无需额外下载浏览器
-forza-sync login
+forza-gallery-sync login
 
 # 指定浏览器
-forza-sync login --browser msedge    # Microsoft Edge
-forza-sync login --browser chrome    # Google Chrome
-forza-sync login --browser firefox   # Mozilla Firefox
-forza-sync login --browser chromium  # Playwright 自带 Chromium（未检测到系统浏览器时兜底）
+forza-gallery-sync login --browser msedge    # Microsoft Edge
+forza-gallery-sync login --browser chrome    # Google Chrome
+forza-gallery-sync login --browser firefox   # Mozilla Firefox
+forza-gallery-sync login --browser chromium  # Playwright 自带 Chromium（未检测到系统浏览器时兜底）
 ```
 
 会弹出浏览器窗口，按**标准 OAuth 2.0 授权码 + PKCE 流程**完成登录：
@@ -64,7 +69,7 @@ forza-sync login --browser chromium  # Playwright 自带 Chromium（未检测到
 **方式 B：手动配置**
 
 ```bash
-forza-sync config
+forza-gallery-sync config
 ```
 
 按提示输入：
@@ -73,45 +78,46 @@ forza-sync config
 - 下载目录（回车使用默认 `~/ForzaPhotos`）
 - 启用游戏（回车默认 FH5、FH6）
 
-> Token 属于敏感信息，输入时不回显。也可用 `forza-sync config set <键> <值>` 直接写入，例如：
-> `forza-sync config set token <值>`、`forza-sync config set refresh_token <值>`
+> Token 属于敏感信息，输入时不回显。也可用 `forza-gallery-sync config set <键> <值>` 直接写入，例如：
+> `forza-gallery-sync config set token <值>`、`forza-gallery-sync config set refresh_token <值>`
 
 ### 2. 执行同步
 
 ```bash
 # 同步所有启用游戏
-forza-sync sync
+forza-gallery-sync sync
 
 # 只同步 FH5
-forza-sync sync --game FH5
+forza-gallery-sync sync --game FH5
 
 # 强制重新下载（覆盖本地已存在文件）
-forza-sync sync --force
+forza-gallery-sync sync --force
 
 # 调试：只处理前 10 张
-forza-sync sync --max 10
+forza-gallery-sync sync --max 10
 ```
 
 ### 3. 查看状态与 Token
 
 ```bash
 # 查看同步状态（已同步数量、最近同步时间等）
-forza-sync status
+forza-gallery-sync status
 
 # 查看 Token 状态（是否过期、剩余有效期）
-forza-sync token
+forza-gallery-sync token
 
 # 强制刷新 Token
-forza-sync token refresh
+forza-gallery-sync token refresh
 ```
 
 ## 管理控制台（桌面应用）
 
-内置一个**桌面窗口化风格**的管理界面（Vue 3 + Tauri + PyO3 内嵌 Python），
+内置一个**桌面原生窗口**管理界面（Vue 3 + Tauri + PyO3 内嵌 Python），
 在独立桌面窗口中完成配置、登录、同步与照片浏览，无需手敲命令。
 
 > 架构说明：Python 解释器通过 PyO3 直接嵌入桌面应用进程，前端经 Tauri
-> 原生命令调用，**无 HTTP 服务、无端口**。
+> 原生命令调用，**无 HTTP 服务、无端口**。打包后的 exe 已内置 Python
+> 运行时（标准库 + 依赖）与前端资源，用户无需单独安装 Python / Node。
 
 界面包含四个模块：
 
@@ -142,6 +148,18 @@ npm run tauri:build       # 安装包输出到 web/src-tauri/target/release/bund
 
 打包要求：Rust 工具链（rustup + stable-msvc）、Visual Studio C++ 构建工具、
 WebView2 Runtime（Win10/11 自带）、Node.js。
+
+打包产物与 GUI 共用同一 exe，**一个程序同时支持两种模式**：
+
+- **GUI 模式**：无参数直接启动桌面窗口（双击启动不弹出命令行窗口）
+- **命令行模式**：带参数即 headless 运行 CLI，供脚本 / 定时任务使用：
+
+  ```bash
+  forza-gallery-sync.exe sync --game FH5
+  forza-gallery-sync.exe status
+  ```
+
+  从终端运行输出同步可见；双击 / 定时任务启动时自动隐藏窗口，无打扰。
 
 ## 目录结构
 
@@ -182,11 +200,11 @@ ForzaPhotos/
 | `verify_ssl` | 是否校验 SSL | `true` |
 | `enabled_games` | 启用的游戏列表 | `["FH5","FH6"]`（可含 FH6/FM/FH4/FM7） |
 
-可用 `forza-sync config set <键> <值>` 修改单项，例如：
+可用 `forza-gallery-sync config set <键> <值>` 修改单项，例如：
 
 ```bash
-forza-sync config set download_dir D:/Backup/ForzaPhotos
-forza-sync config set page_size 100
+forza-gallery-sync config set download_dir D:/Backup/ForzaPhotos
+forza-gallery-sync config set page_size 100
 ```
 
 ## API 说明
@@ -281,20 +299,45 @@ client_id=nuxt-spa
 ## 项目结构
 
 ```
-forza_sync/
-├── __init__.py      # 包信息
-├── __main__.py      # python -m forza_sync 入口
-├── cli.py           # 命令行（config/login/sync/token/status）
-├── config.py        # 配置加载 / 保存 / 校验
-├── auth.py          # Token 管理 + OAuth2 refresh_token 自动刷新
-├── oauth.py         # 标准 OAuth2 授权码 + PKCE 流程（授权URL / 授权码交换）
-├── login.py         # 浏览器驱动登录（系统 Edge/Chrome/Firefox 自动检测）
-├── api_client.py    # Forza Gallery API 客户端 + 分页探测 + 401 自动重试
-├── database.py      # SQLite 增量记录
-├── naming.py        # 文件名生成与净化
-├── downloader.py    # 图片下载与元数据
-├── sync.py          # 同步编排
-└── errors.py        # 异常定义
+├── forza_sync/               # Python 核心（CLI 与桌面服务共用）
+│   ├── __init__.py           # 包信息
+│   ├── __main__.py           # python -m forza_sync 入口
+│   ├── cli.py                # 命令行（config/login/sync/token/status）
+│   ├── config.py             # 配置加载 / 保存 / 校验
+│   ├── auth.py               # Token 管理 + OAuth2 refresh_token 自动刷新
+│   ├── oauth.py              # 标准 OAuth2 授权码 + PKCE 流程（授权URL / 授权码交换）
+│   ├── login.py              # 浏览器驱动登录（系统 Edge/Chrome/Firefox 自动检测）
+│   ├── api_client.py         # Forza Gallery API 客户端 + 分页探测 + 401 自动重试
+│   ├── database.py           # SQLite 增量记录
+│   ├── naming.py             # 文件名生成与净化
+│   ├── downloader.py         # 图片下载与元数据
+│   ├── sync.py               # 同步编排
+│   ├── runner.py             # 后台同步运行器（桌面端 / 服务复用）
+│   ├── service.py            # 纯函数服务层（供 PyO3 桌面端调用，无 HTTP）
+│   └── errors.py             # 异常定义
+├── tests/                    # pytest 单元测试
+│   ├── __init__.py
+│   ├── test_api_client.py
+│   ├── test_auth.py
+│   ├── test_database.py
+│   ├── test_login.py
+│   ├── test_naming.py
+│   └── test_sync.py
+├── web/                      # 桌面应用（Tauri + Vue3 + PyO3 内嵌 Python）
+│   ├── index.html
+│   ├── package.json
+│   ├── vite.config.js
+│   ├── src/                  # Vue3 前端源码（组件 / 视图 / i18n）
+│   ├── runtime/              # 随包发布的内嵌 Python 运行时
+│   └── src-tauri/            # Rust（main.rs / lib.rs：PyO3 + Tauri 命令）
+│       ├── src/
+│       ├── tauri.conf.json
+│       ├── Cargo.toml
+│       └── build.rs
+├── config.example.json       # 配置示例
+├── pyproject.toml            # 打包与 `forza-sync` 命令入口
+├── requirements.txt          # 核心依赖（requests）
+└── requirements-login.txt    # 浏览器自动登录依赖（可选）
 ```
 
 ## 测试
