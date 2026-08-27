@@ -3,7 +3,7 @@ export default {
   app: {
     brand: 'Forza Gallery Sync',
     footer: 'Forza 照片同步工具',
-    version: 'v0.1.0',
+    version: 'v0.2.1',
     loading: '加载中…',
     nav: {
       dashboard: '仪表盘',

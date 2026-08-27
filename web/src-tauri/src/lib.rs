@@ -4,9 +4,11 @@
 //! 嵌入 Python 解释器，直接调用 :mod:`forza_sync.service` 的纯函数。
 //! 完全无 HTTP 服务、无端口、无网络监听。
 //!
-//! 使用 Windows 控制台子系统（不设置 `windows_subsystem`），同一 exe 支持两种模式：
-//! - 无命令行参数：启动 GUI 窗口（双击启动、独占控制台时自动隐藏，不弹出黑色窗口）
+//! 使用 Windows GUI 子系统（`windows_subsystem = "windows"`），同一 exe 支持两种模式：
+//! - 无命令行参数：启动 GUI 窗口（不创建控制台，双击启动零闪现）
 //! - 带命令行参数：headless 命令行模式，供脚本 / 定时任务在无窗口下使用
+//!   （CLI 经 AttachConsole 挂接父控制台输出；交互终端中输出会出现在提示符之后，
+//!     脚本 / 定时任务可用 `Start-Process -Wait` 或重定向输出到文件）
 
 use std::path::Path;
 use std::sync::Arc;
@@ -399,13 +401,19 @@ fn attach_console_if_available() -> ConsoleHandles {
 /// 当前控制台输出代码页对应的 Python 编码名。
 /// PowerShell/cmd 在中文系统默认使用 GBK（cp936），直接以 UTF-8 写入会乱码；
 /// 按控制台代码页编码可自动适配（GBK 控制台→gbk，UTF-8 控制台→utf-8）。
+/// GUI 子系统进程经管道输出、未挂接控制台时 `GetConsoleOutputCP` 返回 0，
+/// 此时回退到 OEM 代码页（中文系统 936/GBK），与 PowerShell 5.1 解码原生命令输出一致。
 #[cfg(windows)]
 fn console_output_encoding() -> String {
     extern "system" {
         fn GetConsoleOutputCP() -> u32;
+        fn GetOEMCP() -> u32;
     }
     unsafe {
-        let cp = GetConsoleOutputCP();
+        let mut cp = GetConsoleOutputCP();
+        if cp == 0 {
+            cp = GetOEMCP();
+        }
         match cp {
             0 | 65001 => "utf-8".to_string(),
             _ => format!("cp{cp}"),
@@ -523,41 +531,7 @@ fn run_cli(args: &[String], resource_dir: Option<&Path>, console: &ConsoleHandle
     }
 }
 
-/// 隐藏本进程独占的控制台窗口。仅当进程独占该控制台（双击启动、Windows 自动
-/// 分配的新控制台，或定时任务无终端上下文）时隐藏；从终端 / 脚本启动时共享
-/// 父控制台，不隐藏，以保证命令行输出同步可见。
-#[cfg(windows)]
-fn hide_owned_console() {
-    use std::ffi::c_void;
-
-    extern "system" {
-        fn GetConsoleWindow() -> *mut c_void;
-        fn GetConsoleProcessList(lpdw_process_list: *mut u32, dw_process_count: u32) -> u32;
-        fn ShowWindow(h_wnd: *mut c_void, n_cmd_show: i32) -> i32;
-    }
-
-    const SW_HIDE: i32 = 0;
-
-    unsafe {
-        let hwnd = GetConsoleWindow();
-        if hwnd.is_null() {
-            return;
-        }
-        let mut pids = [0u32; 4];
-        // 共享该控制台的进程数：<=1 表示本进程独占（非终端启动）
-        let count = GetConsoleProcessList(pids.as_mut_ptr(), pids.len() as u32);
-        if count <= 1 {
-            ShowWindow(hwnd, SW_HIDE);
-        }
-    }
-}
-
 pub fn run() {
-    // 双击启动（独占控制台）时立即隐藏控制台窗口，避免 GUI 模式弹出黑色窗口；
-    // 从终端启动（共享控制台）则保留，保证 CLI 输出同步可见。
-    #[cfg(windows)]
-    hide_owned_console();
-
     let args: Vec<String> = std::env::args().skip(1).collect();
 
     // headless 命令行模式：带参数时不启动 GUI，直接运行 Python CLI
@@ -571,7 +545,7 @@ pub fn run() {
         std::process::exit(code);
     }
 
-    // GUI 模式：若独占控制台已在 run() 开头隐藏；从终端启动则保留
+    // GUI 模式：exe 为 GUI 子系统，无任何控制台窗口
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .invoke_handler(tauri::generate_handler![

@@ -151,7 +151,8 @@ WebView2 Runtime（Win10/11 自带）、Node.js。
 
 打包产物与 GUI 共用同一 exe，**一个程序同时支持两种模式**：
 
-- **GUI 模式**：无参数直接启动桌面窗口（双击启动不弹出命令行窗口）
+- **GUI 模式**：无参数直接启动桌面窗口。exe 为 Windows GUI 子系统，
+  **不创建任何控制台窗口**（双击启动零闪现）。
 - **命令行模式**：带参数即 headless 运行 CLI，供脚本 / 定时任务使用：
 
   ```bash
@@ -159,7 +160,18 @@ WebView2 Runtime（Win10/11 自带）、Node.js。
   forza-gallery-sync.exe status
   ```
 
-  从终端运行输出同步可见；双击 / 定时任务启动时自动隐藏窗口，无打扰。
+  - **定时任务 / 脚本**：直接运行 exe 即可，任务调度器会等待进程结束，
+    并可重定向输出到文件。
+  - **交互式终端（PowerShell / cmd）**：Windows 会把 GUI 子系统程序当作
+    异步应用启动，输出可能出现在提示符之后、`$LASTEXITCODE` 不可靠。
+    如需同步执行并拿到退出码，请用以下方式：
+
+    ```bat
+    rem cmd
+    cmd /c start "" /wait forza-gallery-sync.exe sync --game FH5
+    rem PowerShell
+    Start-Process -Wait -FilePath .\forza-gallery-sync.exe -ArgumentList "sync","--game","FH5"
+    ```
 
 ## 目录结构
 
@@ -346,6 +358,16 @@ client_id=nuxt-spa
 pip install pytest
 pytest
 ```
+
+## 版本记录
+
+### v0.2.1
+- 修复：桌面版改用 Windows GUI 子系统，双击启动不再闪现命令行窗口（零控制台）
+- 修复：CLI 中文输出按控制台代码页自动编码（GBK/UTF-8 自适应），兼容中文系统 PowerShell
+- 说明：CLI 在交互式终端的输出顺序（提供 `cmd /c start "" /wait` / `Start-Process -Wait` 同步方式）
+
+### v0.1.0
+- 首个版本：Forza 照片同步 CLI + 桌面管理控制台（Tauri + PyO3 内嵌 Python，无 HTTP 服务）
 
 ## 免责声明
 

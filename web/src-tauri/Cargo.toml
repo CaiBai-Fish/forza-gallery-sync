@@ -1,6 +1,6 @@
 [package]
 name = "forza-gallery-sync"
-version = "0.1.0"
+version = "0.2.1"
 description = "Forza Horizon 照片同步工具桌面版"
 authors = ["forza-sync contributors"]
 edition = "2021"

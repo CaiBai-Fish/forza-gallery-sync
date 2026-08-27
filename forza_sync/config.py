@@ -77,7 +77,7 @@ class Config:
     retries: int = 3
     workers: int = 4
     verify_ssl: bool = True
-    user_agent: str = "forza-sync/0.1.0"
+    user_agent: str = "forza-sync/0.2.1"
     enabled_games: list = field(default_factory=lambda: list(DEFAULT_ENABLED_GAMES))
 
     # ---- 反序列化 ----
@@ -101,7 +101,7 @@ class Config:
         cfg.retries = _as_int(data.get("retries", 3), 3)
         cfg.workers = _as_int(data.get("workers", 4), 4)
         cfg.verify_ssl = bool(data.get("verify_ssl", True))
-        cfg.user_agent = _as_str(data.get("user_agent", "forza-sync/0.1.0"))
+        cfg.user_agent = _as_str(data.get("user_agent", "forza-sync/0.2.1"))
 
         games = data.get("enabled_games")
         if isinstance(games, list) and games:

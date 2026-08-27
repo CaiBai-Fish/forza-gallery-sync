@@ -11,6 +11,6 @@
   "retries": 3,
   "workers": 4,
   "verify_ssl": true,
-  "user_agent": "forza-sync/0.1.0",
+  "user_agent": "forza-sync/0.2.1",
   "enabled_games": ["FH5", "FH6"]
 }
