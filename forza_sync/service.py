@@ -272,6 +272,25 @@ def auth_login_status() -> dict:
 
 
 # ---------------------------------------------------------------------------
+# 版本 / 检查更新
+# ---------------------------------------------------------------------------
+
+
+def app_version() -> dict:
+    """返回当前应用版本。"""
+    from . import __version__
+
+    return {"version": __version__}
+
+
+def check_update(config_path: Optional[str] = None) -> dict:
+    """查询最新版本并返回对比结果（供 GUI 设置页 / CLI 使用）。"""
+    from .updates import check_update as _check_update
+
+    return _check_update(config_path=config_path)
+
+
+# ---------------------------------------------------------------------------
 # 同步
 # ---------------------------------------------------------------------------
 

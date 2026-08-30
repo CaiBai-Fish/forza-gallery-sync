@@ -3,6 +3,7 @@ name: build-release
 on:
   push:
     branches: [main]
+    tags: ["v*"]
   workflow_dispatch:
 
 concurrency:
@@ -13,101 +14,109 @@ permissions:
   contents: write
 
 jobs:
-  publish-tauri:
+  build:
     runs-on: windows-latest
-    env:
-      FORZA_SYNC_PROJECT_ROOT: ${{ github.workspace }}
 
     steps:
       - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: web/package-lock.json
-
-      - name: Setup Python
+      - name: Setup Python 3.13
         uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
           cache-dependency-path: requirements*.txt
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Cache Rust
-        uses: swatinem/rust-cache@v2
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
         with:
-          workspaces: web/src-tauri
+          dotnet-version: "8.0.x"
 
       - name: Install Python dependencies
-        run: pip install -r requirements.txt -r requirements-login.txt .
-
-      - name: Prepare bundled Python runtime
         shell: pwsh
         run: |
-          $python = (Get-Command python).Source
-          "PYO3_PYTHON=$python" | Out-File -FilePath $env:GITHUB_ENV -Append
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt . nuitka
+          # 记录 Python 安装根目录，供打包脚本使用（标准 CPython：DLLs/sqlite3.dll）
+          $py = (Get-Command python).Source
+          $pyHome = Split-Path $py -Parent
+          "PY_HOME=$pyHome" | Out-File -FilePath $env:GITHUB_ENV -Append
 
-          $pyHome = Split-Path $python
-          $runtime = Join-Path $env:GITHUB_WORKSPACE "web/runtime"
-          if (Test-Path $runtime) {
-            Remove-Item $runtime -Recurse -Force
-          }
-          New-Item -ItemType Directory -Force $runtime | Out-Null
-
-          Copy-Item "$pyHome/python3.dll" "$runtime/python3.dll" -Force
-          Copy-Item "$pyHome/python313.dll" "$runtime/python313.dll" -Force
-          foreach ($dll in @("msvcp140.dll", "vcruntime140.dll", "vcruntime140_1.dll")) {
-            if (Test-Path "$pyHome/$dll") {
-              Copy-Item "$pyHome/$dll" "$runtime/$dll" -Force
-            } elseif (Test-Path "C:/Windows/System32/$dll") {
-              Copy-Item "C:/Windows/System32/$dll" "$runtime/$dll" -Force
-            }
-          }
-
-          Copy-Item "$pyHome/Lib" "$runtime/Lib" -Recurse -Force
-          Copy-Item "$pyHome/DLLs" "$runtime/DLLs" -Recurse -Force
-          Copy-Item "$pyHome/python3.dll" "$runtime/DLLs/python3.dll" -Force
-          Copy-Item "$pyHome/python313.dll" "$runtime/DLLs/python313.dll" -Force
-          New-Item -ItemType Directory -Force "$runtime/Library" | Out-Null
-
-      - name: Install frontend dependencies
-        working-directory: web
-        run: npm ci
-
-      - name: Compute version, tag and release body
-        id: release-meta
+      - name: Compute version and release tag
+        id: meta
         shell: pwsh
         run: |
-          # 版本号取自 tauri.conf.json，与打包版本保持一致
-          $cfg = Get-Content "web/src-tauri/tauri.conf.json" -Raw | ConvertFrom-Json
-          $version = $cfg.version
+          $cfg = Get-Content pyproject.toml -Raw
+          if ($cfg -match 'version\s*=\s*"([^"]+)"') { $version = $Matches[1] } else { $version = "0.0.0" }
           $shortSha = $env:GITHUB_SHA.Substring(0, 7)
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            # tag 触发（如 v0.4.0）：发布到该 tag
+            $releaseTag = $env:GITHUB_REF_NAME
+          } else {
+            # 手动触发：使用 版本号-短提交号 作为 tag
+            $releaseTag = "$version-$shortSha"
+          }
+          "VERSION=$version"        | Out-File -FilePath $env:GITHUB_ENV -Append
+          "RELEASE_TAG=$releaseTag" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "VERSION=$version  RELEASE_TAG=$releaseTag"
 
-          # tag = 当前版本号 + 编译的 commit 号，如 0.2.1-a1b2c3d
-          "VERSION=$version"       | Out-File -FilePath $env:GITHUB_ENV -Append
-          "SHORT_SHA=$shortSha"    | Out-File -FilePath $env:GITHUB_ENV -Append
-          "RELEASE_TAG=$version-$shortSha" | Out-File -FilePath $env:GITHUB_ENV -Append
+      - name: Prepare release body from CHANGELOG
+        shell: pwsh
+        run: |
+          $version = $env:VERSION
+          $raw = Get-Content "CHANGELOG.md" -Raw
+          $esc = [regex]::Escape($version)
+          # 提取 "## [x.y.z] - 日期" 章节，直到下一个 "## " 或文件末尾
+          $pattern = "(?ms)^##\s*\[?$esc\]?\s*(?:-\s*\d{4}-\d{2}-\d{2})?\s*\r?\n(.*?)(?=^##\s|\z)"
+          $m = [regex]::Match($raw, $pattern)
+          $section = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "" }
 
-          # releaseBody = 该 commit 的提交详情（标题 + 正文）
-          $body = git log -1 --format=%B $env:GITHUB_SHA
-          "RELEASE_BODY<<EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
-          $body | Out-File -FilePath $env:GITHUB_ENV -Append
-          "EOF" | Out-File -FilePath $env:GITHUB_ENV -Append
+          $assets = @(
+            "- GUI 安装程序：ForzaGallerySync-Setup-$version.exe（安装时把 Python/.NET 运行时解压到安装目录）",
+            "- CLI 单文件：forza-sync.exe（Nuitka 编译，自包含）"
+          )
+          $header = "## Forza Gallery Sync $version"
+          $crlf = "`r`n"
+          if ($section) {
+            $body = $header + $crlf + $crlf + ($assets -join $crlf) + $crlf + $crlf + $section
+          } else {
+            $body = $header + $crlf + $crlf + ($assets -join $crlf)
+          }
+          $bodyPath = Join-Path $env:RUNNER_TEMP "release-body.md"
+          Set-Content -Path $bodyPath -Value $body -Encoding utf8
+          "RELEASE_BODY_PATH=$bodyPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          Write-Host "Release body chars: $($section.Length)"
 
-      - name: Build and publish Tauri app
-        uses: tauri-apps/tauri-action@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build CLI single-file (Nuitka)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\web\make-cli.ps1 `
+            -Python "$env:PY_HOME\python.exe" -Version $env:VERSION
+
+      - name: Build GUI installer
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
+            -PythonEnv $env:PY_HOME -Version $env:VERSION
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
         with:
-          projectPath: web
-          tagName: ${{ env.RELEASE_TAG }}
-          releaseName: Forza Gallery Sync ${{ env.VERSION }}
-          releaseBody: |
-            ${{ env.RELEASE_BODY }}
-          releaseDraft: false
+          name: forza-gallery-sync-release
+          path: |
+            cli-dist/forza-sync.exe
+            web/dist/ForzaGallerySync-Setup-*.exe
+
+      - name: Create / update GitHub Release (tags v* or manual dispatch)
+        if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ env.RELEASE_TAG }}
+          name: Forza Gallery Sync ${{ env.VERSION }}
+          body_path: ${{ env.RELEASE_BODY_PATH }}
+          files: |
+            cli-dist/forza-sync.exe
+            web/dist/ForzaGallerySync-Setup-*.exe
+          draft: false
           prerelease: false
+

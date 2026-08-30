@@ -1,4 +1,0 @@
-# 浏览器自动登录功能（可选）需要额外安装：
-#   pip install -r requirements-login.txt
-#   playwright install chromium
-playwright>=1.40

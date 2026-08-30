@@ -23,9 +23,19 @@ config.json
 .DS_Store
 
 # Web / 桌面构建产物
-web/node_modules/
+web/bin/
+web/obj/
+web/python-runtime.zip
+web/publish-single
 web/dist/
-web/runtime/
-web/app-icon.png
-web/src-tauri/target/
-web/src-tauri/gen/
+installer/payload.zip
+installer/bin/
+installer/obj/
+cli-dist/
+cli-build/
+web-legacy/node_modules/
+web-legacy/dist/
+web-legacy/runtime/
+web-legacy/app-icon.png
+web-legacy/src-tauri/target/
+web-legacy/src-tauri/gen/

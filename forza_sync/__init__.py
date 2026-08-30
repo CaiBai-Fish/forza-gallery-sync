@@ -3,5 +3,5 @@
 通过 Forza Gallery API 获取用户的游戏内照片并自动下载原图到本地备份。
 """
 
-__version__ = "0.2.1"
+__version__ = "0.4.0"
 __author__ = "forza-sync contributors"

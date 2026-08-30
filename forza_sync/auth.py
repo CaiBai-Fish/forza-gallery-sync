@@ -165,14 +165,15 @@ class TokenManager:
     def access_token(self) -> str:
         """返回可用的 access token；已过期且配置了 refresh_token 时自动刷新。"""
         cfg = self.mgr.load()
-        if self._cached:
-            return self._cached
+        # 即使存在进程内缓存，也先判断是否已过期（缓存可能是旧的），过期则主动刷新。
         if self._is_expired(cfg):
             if cfg.refresh_token:
                 self._cached = self.refresh()
                 return self._cached
             if not cfg.token:
                 raise AuthError("未配置 Token，请运行 `forza-sync config`")
+        if self._cached:
+            return self._cached
         return cfg.token
 
     def refresh(self) -> str:

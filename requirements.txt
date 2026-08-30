@@ -1,2 +1,12 @@
+# 核心依赖：Forza Gallery API 客户端与下载
 requests>=2.28
+
+# requests 的硬依赖链，单独列出以作保险（运行时裁剪 make-runtime.ps1 按此列表保留）
 certifi>=2024.7.4
+charset_normalizer>=3.0
+idna>=3.0
+urllib3>=2.0
+
+# 浏览器自动登录（原 requirements-login.txt，已合并）：默认使用系统浏览器，
+# 仅当无系统浏览器、需回退 Playwright Chromium 时才需要执行 `playwright install chromium`
+playwright>=1.40

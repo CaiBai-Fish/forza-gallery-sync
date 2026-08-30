@@ -1,0 +1,162 @@
+<Page
+    x:Class="ForzaGallerySync.Views.GalleryPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:ForzaGallerySync.ViewModels">
+
+    <Grid x:Name="RootGrid" Padding="16" RowSpacing="12" RowDefinitions="Auto,*,Auto">
+
+        <!-- 工具栏 -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+            <Button x:Name="BackBtn" MinWidth="40" MinHeight="32" Padding="8,0" Visibility="Collapsed"
+                    ToolTipService.ToolTip="返回图库" Click="OnDetailClose">
+                <FontIcon Glyph="&#xE72B;" FontSize="16" />
+            </Button>
+            <AutoSuggestBox x:Name="SearchBox" Width="240" PlaceholderText="搜索标题 / ID / 游戏"
+                            QueryIcon="Find" TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" />
+            <ComboBox x:Name="GameCombo" PlaceholderText="全部游戏" MinWidth="170"
+                      ItemsSource="{x:Bind VM.GamesList, Mode=OneWay}" SelectionChanged="OnGameChanged" />
+            <ComboBox x:Name="MonthCombo" PlaceholderText="全部月份" MinWidth="150"
+                      ItemsSource="{x:Bind VM.Months, Mode=OneWay}" SelectionChanged="OnMonthChanged" />
+            <Button Content="↻" ToolTipService.ToolTip="刷新" Click="OnRefresh" />
+            <Button Content="📂 打开目录" IsEnabled="{x:Bind VM.HasDownloadDir, Mode=OneWay}"
+                    Click="OnOpenDownloadDir" />
+            <TextBlock Text="{x:Bind VM.TotalText, Mode=OneWay}" VerticalAlignment="Center"
+                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+        </StackPanel>
+
+        <!-- 网格 -->
+        <GridView Grid.Row="1" x:Name="PhotoGrid" ItemsSource="{x:Bind VM.Photos, Mode=OneWay}"
+                  SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnPhotoClick">
+            <GridView.ItemsPanel>
+                <ItemsPanelTemplate>
+                    <ItemsWrapGrid Orientation="Horizontal" />
+                </ItemsPanelTemplate>
+            </GridView.ItemsPanel>
+            <GridView.ItemContainerStyle>
+                <Style TargetType="GridViewItem">
+                    <Setter Property="Margin" Value="4" />
+                    <Setter Property="CornerRadius" Value="8" />
+                </Style>
+            </GridView.ItemContainerStyle>
+            <GridView.ItemTemplate>
+                <DataTemplate x:DataType="vm:PhotoItemViewModel">
+                    <Border Width="176" Height="110" CornerRadius="8" Background="#FF0D1224">
+                        <Grid>
+                            <Image Source="{Binding Thumbnail, Mode=OneWay}" Stretch="UniformToFill" />
+                            <Border VerticalAlignment="Bottom" Background="#C0000000" CornerRadius="0,0,8,8" Padding="8,5">
+                                <StackPanel Spacing="2">
+                                    <TextBlock Text="{x:Bind GameName}" FontSize="10" Foreground="#8FC3FF" />
+                                    <TextBlock Text="{x:Bind Title, FallbackValue='无标题'}" FontSize="11" Foreground="White"
+                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                </StackPanel>
+                            </Border>
+                            <Grid.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="打开文件" Click="OnMenuOpenFile" />
+                                    <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuOpenDir" />
+                                    <MenuFlyoutItem Text="查看详情" Click="OnMenuViewDetail" />
+                                </MenuFlyout>
+                            </Grid.ContextFlyout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </GridView.ItemTemplate>
+        </GridView>
+
+        <!-- 加载 / 错误 / 空状态 -->
+        <Grid x:Name="StatusOverlay" Grid.Row="1" IsHitTestVisible="False">
+            <ProgressRing Width="36" Height="36" IsActive="{x:Bind VM.Loading, Mode=OneWay}"
+                          Visibility="{x:Bind VM.Loading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="{x:Bind VM.Error, Mode=OneWay}" Foreground="{ThemeResource DangerBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{x:Bind VM.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+            <TextBlock Text="没有找到照片" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"
+                       Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+        </Grid>
+
+        <!-- 分页 -->
+        <StackPanel x:Name="Pager" Grid.Row="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
+            <Button Content="‹" MinWidth="40" IsEnabled="{x:Bind VM.HasPrev, Mode=OneWay}" Click="OnPrevPage" />
+            <ItemsControl ItemsSource="{x:Bind VM.PageButtons, Mode=OneWay}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal" Spacing="6" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:PageButtonViewModel">
+                        <Button Content="{x:Bind Label}" Tag="{x:Bind Page}" MinWidth="40"
+                                FontWeight="{x:Bind IsCurrent, Converter={StaticResource BoolToFontWeight}}"
+                                Click="OnPageClick" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+            <Button Content="›" MinWidth="40" IsEnabled="{x:Bind VM.HasNext, Mode=OneWay}" Click="OnNextPage" />
+        </StackPanel>
+
+        <!-- 照片详情视图（图片与详情并排同级；收起/展开时详情列宽动画，图片自适应窗口） -->
+        <Grid x:Name="DetailView" Grid.Row="1" Visibility="Collapsed">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition x:Name="DetailColumn" Width="340" />
+            </Grid.ColumnDefinitions>
+
+            <!-- 图片列 -->
+            <Grid Grid.Column="0" x:Name="ImageArea">
+                <Image x:Name="DetailImage" Stretch="Uniform" />
+
+                <!-- 显示 / 收起信息按钮（图片右侧，始终可见） -->
+                <Button x:Name="ToggleSidebarBtn" HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Width="34" Height="52" Margin="0,0,8,0" Padding="0" Click="OnToggleSidebar"
+                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                        BorderBrush="#33FFFFFF" BorderThickness="1">
+                    <TextBlock x:Name="ToggleSidebarIcon" Text="&gt;" FontSize="14" FontWeight="Bold" />
+                </Button>
+            </Grid>
+
+            <!-- 详情列（与图片并排同级，无圆角、无背景） -->
+            <Border x:Name="DetailSidebar" Grid.Column="1" Margin="16,0,0,0"
+                    BorderBrush="#33FFFFFF" BorderThickness="1" Padding="20">
+                <ScrollViewer VerticalScrollBarVisibility="Auto">
+                    <StackPanel Spacing="10">
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Border CornerRadius="4" Padding="8,3" Background="{ThemeResource AccentBrush}">
+                                <TextBlock x:Name="DetailGame" FontSize="12" Foreground="White" />
+                            </Border>
+                            <TextBlock x:Name="DetailTitle" FontSize="18" FontWeight="SemiBold"
+                                       TextWrapping="Wrap" VerticalAlignment="Center" />
+                        </StackPanel>
+                        <Border Height="1" Background="#33FFFFFF" />
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="照片 ID" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DetailPhotoId" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock Text="上传时间" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DetailSubmitted" FontSize="12" />
+                            <TextBlock Text="下载时间" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DetailDownloaded" FontSize="12" />
+                            <TextBlock Text="本地路径" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DetailPath" FontSize="12" TextWrapping="Wrap" />
+                            <TextBlock Text="描述" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                            <TextBlock x:Name="DetailDesc" FontSize="12" TextWrapping="Wrap" />
+                        </StackPanel>
+                        <Border Height="1" Background="#33FFFFFF" />
+                        <Button Content="📂 打开本地文件" HorizontalAlignment="Stretch" Click="OnDetailOpenFile" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+        </Grid>
+
+        <!-- Hero 转场动画层：打开详情从缩略图放大，返回时缩小到缩略图（动画期间半透明） -->
+        <Image x:Name="HeroImage" Grid.RowSpan="3" Stretch="Uniform" Visibility="Collapsed"
+               IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top">
+            <Image.RenderTransform>
+                <TransformGroup>
+                    <ScaleTransform x:Name="HeroScale" ScaleX="1" ScaleY="1" />
+                    <TranslateTransform x:Name="HeroTransform" />
+                </TransformGroup>
+            </Image.RenderTransform>
+        </Image>
+    </Grid>
+</Page>

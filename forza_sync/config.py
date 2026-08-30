@@ -9,12 +9,14 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 import sys
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Optional
 
 from .errors import ConfigError
+from . import __version__ as _pkg_version
 
 # 游戏代码 → 显示名（默认英文全称，供 CLI / 后端调试；前端 UI 优先使用 i18n 翻译键）
 GAME_DISPLAY_NAMES = {
@@ -61,6 +63,21 @@ def default_config_path() -> Path:
     return _default_config_dir() / "config.json"
 
 
+def _migrate_db(legacy: Path, target: Path) -> None:
+    """一次性迁移：把旧位置（配置目录）的数据库复制到安装目录（含 WAL/SHM），失败不阻塞。"""
+    try:
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(legacy, target)  # 调用方已确认 target 不存在
+        for suffix in ("-wal", "-shm"):
+            src = Path(str(legacy) + suffix)
+            dst = Path(str(target) + suffix)
+            if src.exists() and not dst.exists():
+                shutil.copy2(src, dst)
+    except OSError:
+        # 迁移失败不阻塞使用：新库会在首次写入时重建
+        pass
+
+
 @dataclass
 class Config:
     """工具配置。所有字段均有安全默认值。"""
@@ -70,14 +87,14 @@ class Config:
     token_issued_at: str = ""  # 最近一次获取/刷新 access token 的时间（ISO8601 UTC）
     token_expires_in: int = 0  # access token 有效期（秒）
     download_dir: str = ""  # 为空时默认 ~/ForzaPhotos
-    database_path: str = ""  # 为空时默认 <配置目录>/forza_sync.db
+    database_path: str = ""  # 为空时默认：桌面安装版→安装目录，CLI/开发→配置目录
     page_size: int = DEFAULT_PAGE_SIZE
     pagination: str = DEFAULT_PAGINATION
     timeout: int = 30
     retries: int = 3
     workers: int = 4
     verify_ssl: bool = True
-    user_agent: str = "forza-sync/0.2.1"
+    user_agent: str = f"forza-sync/{_pkg_version}"
     enabled_games: list = field(default_factory=lambda: list(DEFAULT_ENABLED_GAMES))
 
     # ---- 反序列化 ----
@@ -101,7 +118,7 @@ class Config:
         cfg.retries = _as_int(data.get("retries", 3), 3)
         cfg.workers = _as_int(data.get("workers", 4), 4)
         cfg.verify_ssl = bool(data.get("verify_ssl", True))
-        cfg.user_agent = _as_str(data.get("user_agent", "forza-sync/0.2.1"))
+        cfg.user_agent = _as_str(data.get("user_agent", f"forza-sync/{_pkg_version}"))
 
         games = data.get("enabled_games")
         if isinstance(games, list) and games:
@@ -138,6 +155,18 @@ class Config:
     def effective_database_path(self, config_dir: Path) -> Path:
         if self.database_path:
             return Path(self.database_path).expanduser()
+
+        # 桌面安装版（PythonHost 已设 FORZA_SYNC_APP_DIR=安装目录）：数据库默认放安装目录，
+        # 便于随安装目录整体携带（便携化）；并一次性迁移旧配置目录中的数据库。
+        app_dir = os.environ.get("FORZA_SYNC_APP_DIR")
+        if app_dir:
+            app_path = Path(app_dir)
+            if app_path.is_dir():
+                target = app_path / "forza_sync.db"
+                legacy = config_dir / "forza_sync.db"
+                if not target.exists() and legacy.exists():
+                    _migrate_db(legacy, target)
+                return target
         return config_dir / "forza_sync.db"
 
 

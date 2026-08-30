@@ -1,0 +1,131 @@
+<Page
+    x:Class="ForzaGallerySync.Views.SyncPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:vm="using:ForzaGallerySync.ViewModels"
+    xmlns:models="using:ForzaGallerySync.Models">
+
+    <Grid Padding="18" ColumnSpacing="16" ColumnDefinitions="340,*">
+
+        <!-- 左侧：同步参数 -->
+        <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+                <TextBlock Text="同步设置" FontSize="16" FontWeight="SemiBold" />
+
+                <TextBlock Text="选择游戏" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                <ItemsControl ItemsSource="{x:Bind VM.GameToggles, Mode=OneWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <ItemsWrapGrid Orientation="Horizontal" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:GameToggleViewModel">
+                            <ToggleButton Content="{x:Bind Name}" IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
+                                          MinWidth="150" Margin="0,0,8,8" FontWeight="SemiBold" />
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="最大照片数" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox Text="{x:Bind VM.MaxPhotos, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="全部" />
+                    </StackPanel>
+                    <StackPanel Grid.Column="1" Spacing="4">
+                        <TextBlock Text="每页数量" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <TextBox Text="{x:Bind VM.PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                 PlaceholderText="默认" />
+                    </StackPanel>
+                </Grid>
+
+                <ToggleSwitch Header="强制重新下载（覆盖已存在文件）"
+                              IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                    <Button Content="▶ 开始同步" Style="{ThemeResource AccentButtonStyle}"
+                            IsEnabled="{x:Bind VM.CanStart, Mode=OneWay}" Click="OnStart" />
+                    <Button Content="■ 停止" IsEnabled="{x:Bind VM.Running, Mode=OneWay}" Click="OnStop" />
+                </StackPanel>
+
+                <TextBlock Text="{x:Bind VM.ActionError, Mode=OneWay}"
+                           Foreground="{ThemeResource DangerBrush}" TextWrapping="Wrap" />
+                <TextBlock Text="{x:Bind VM.Message, Mode=OneWay}"
+                           Foreground="{ThemeResource SuccessBrush}" TextWrapping="Wrap" />
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- 右侧：同步进度 -->
+        <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="14">
+                <TextBlock Text="同步进度" FontSize="16" FontWeight="SemiBold" />
+
+                <!-- 空闲状态 -->
+                <StackPanel Spacing="6"
+                            Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                    <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                    <TextBlock Text="{x:Bind VM.FinishedText, Mode=OneWay}"
+                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
+                </StackPanel>
+
+                <!-- 运行状态 -->
+                <StackPanel Spacing="12"
+                            Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Border CornerRadius="4" Padding="10,4" Background="{ThemeResource AccentBrush}">
+                            <TextBlock Text="{x:Bind VM.GameName, Mode=OneWay}" FontSize="13" Foreground="White" />
+                        </Border>
+                        <TextBlock Text="{x:Bind VM.ProgCountText, Mode=OneWay}" FontSize="15" FontWeight="SemiBold"
+                                   VerticalAlignment="Center" />
+                        <TextBlock Text="{x:Bind VM.PercentText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
+                                   Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
+                    </StackPanel>
+
+                    <ProgressBar Maximum="100" Value="{x:Bind VM.Percent, Mode=OneWay}" Height="8" />
+
+                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                        <StackPanel Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="8" Padding="12">
+                            <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
+                                       Foreground="{ThemeResource SuccessBrush}" />
+                            <TextBlock Text="新增" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="8" Padding="12">
+                            <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="20" FontWeight="Bold" />
+                            <TextBlock Text="跳过" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                    CornerRadius="8" Padding="12">
+                            <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
+                                       Foreground="{ThemeResource DangerBrush}" />
+                            <TextBlock Text="失败" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        </StackPanel>
+                    </Grid>
+
+                    <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}" FontSize="13" TextWrapping="Wrap" />
+
+                    <TextBlock Text="正在取消…" Foreground="{ThemeResource WarnBrush}"
+                               Visibility="{x:Bind VM.CancelRequested, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                    <ItemsControl ItemsSource="{x:Bind VM.FailedItems, Mode=OneWay}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="models:FailedItem">
+                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Padding="0,3">
+                                    <TextBlock Text="{x:Bind Url}" FontSize="12"
+                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                               TextTrimming="CharacterEllipsis" />
+                                    <TextBlock Grid.Column="1" Text="{x:Bind Reason}" FontSize="12"
+                                               Foreground="{ThemeResource DangerBrush}" MaxWidth="280"
+                                               TextTrimming="CharacterEllipsis" />
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </StackPanel>
+            </StackPanel>
+        </ScrollViewer>
+    </Grid>
+</Page>
