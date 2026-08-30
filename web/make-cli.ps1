@@ -3,7 +3,7 @@
 # Produces a standalone single-file exe (forza-sync.exe) with embedded Python.
 param(
     [string]$Python = "",
-    [string]$Version = "0.4.0"
+    [string]$Version = "0.4.1"
 )
 $ErrorActionPreference = "Stop"
 
@@ -11,6 +11,7 @@ $root = Split-Path -Parent $MyInvocation.MyCommand.Path        # web/
 $projectRoot = Split-Path -Parent $root                        # repo root
 $outDir = Join-Path $projectRoot "cli-dist"
 $entry = Join-Path $projectRoot "cli_entry.py"
+$iconPath = Join-Path $root "Assets/forza-gallery-sync.ico"
 
 if (-not (Test-Path $entry)) { throw "Entry script not found: $entry" }
 
@@ -59,7 +60,8 @@ $nuitkaArgs = @(
     "--product-name=Forza Gallery Sync CLI",
     "--file-description=Forza Gallery Sync command line tool (sync, config, login, token, status)",
     "--file-version=$Version",
-    "--enable-plugin=no-qt"
+    "--enable-plugin=no-qt",
+    "--windows-icon-from-ico=$iconPath"
 )
 if ($sqliteDll) {
     $nuitkaArgs += "--include-data-files=$sqliteDll=./sqlite3.dll"

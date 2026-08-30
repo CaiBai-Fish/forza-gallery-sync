@@ -17,7 +17,7 @@
 param(
     [string]$Config = "Release",
     [string]$Runtime = "win-x64",
-    [string]$Version = "0.4.0",
+    [string]$Version = "0.4.1",
     [string]$PythonEnv = ""
 )
 $ErrorActionPreference = "Stop"

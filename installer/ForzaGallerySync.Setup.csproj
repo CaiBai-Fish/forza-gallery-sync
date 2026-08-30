@@ -9,7 +9,8 @@
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
-    <Version>0.4.0</Version>
+    <Version>0.4.1</Version>
+    <ApplicationIcon>forza-gallery-sync.ico</ApplicationIcon>
     <!-- 单文件自包含安装程序：不依赖目标机器上的 .NET 运行时 -->
     <PublishSingleFile>true</PublishSingleFile>
     <SelfContained>true</SelfContained>

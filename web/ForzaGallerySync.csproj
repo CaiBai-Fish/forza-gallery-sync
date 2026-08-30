@@ -15,6 +15,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <AssemblyName>forza-gallery-sync</AssemblyName>
+    <ApplicationIcon>Assets\forza-gallery-sync.ico</ApplicationIcon>
     <!-- 独立 exe 模式：不打包 MSIX，也不需要系统预装 Windows App Runtime -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>

@@ -151,7 +151,7 @@ dotnet run -p:Platform=x64            # 运行桌面窗口
 ```bash
 cd web
 
-# 一键构建安装程序（自动完成以下四步，产物：web/dist/ForzaGallerySync-Setup-0.4.0.exe，约 191MB）
+# 一键构建安装程序（自动完成以下四步，产物：web/dist/ForzaGallerySync-Setup-0.4.1.exe，约 191MB）
 powershell -ExecutionPolicy Bypass -File .\make-installer.ps1
 ```
 
@@ -164,9 +164,9 @@ powershell -ExecutionPolicy Bypass -File .\make-installer.ps1
 安装程序用法：
 
 ```bash
-ForzaGallerySync-Setup-0.4.0.exe                     # 交互式安装
-ForzaGallerySync-Setup-0.4.0.exe --install [目录]     # 静默安装
-ForzaGallerySync-Setup-0.4.0.exe --uninstall          # 卸载
+ForzaGallerySync-Setup-0.4.1.exe                     # 交互式安装
+ForzaGallerySync-Setup-0.4.1.exe --install [目录]     # 静默安装
+ForzaGallerySync-Setup-0.4.1.exe --uninstall          # 卸载
 ```
 
 安装位置默认 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，开始菜单含应用与卸载快捷方式，并写入卸载注册表项。
@@ -399,6 +399,9 @@ pytest
 
 > 完整更新日志见 [CHANGELOG.md](CHANGELOG.md)；GitHub Release 的发布说明
 > 由 `.github/workflows/build-release.yml` 自动从 CHANGELOG 对应版本章节生成。
+
+### v0.4.1
+- 修复：CLI（Nuitka）在标准 CPython 下构建 sqlite3.dll 冲突；GUI 安装程序 / CLI / 应用 exe 增加应用图标
 
 ### v0.4.0
 - 新增：**检查更新**功能（设置页「关于与更新」卡片 + GitHub Releases 源；可选 GitHub token 提升限流）

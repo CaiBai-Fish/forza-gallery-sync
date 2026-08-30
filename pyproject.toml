@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "forza-gallery-sync"
-version = "0.4.0"
+version = "0.4.1"
 description = "Forza Horizon 照片自动同步工具：通过 Forza Gallery API 下载并备份照片"
 readme = "README.md"
 requires-python = ">=3.9"
