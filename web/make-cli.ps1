@@ -35,11 +35,20 @@ $sqliteDll = @(
     (Join-Path $pythonHome "sqlite3.dll")
 ) | Where-Object { Test-Path $_ } | Select-Object -First 1
 
+# 标准 CPython 的 DLLs/sqlite3.dll 会被 Nuitka 自动作为 DLL 打包，
+# 此时再显式 include-data-files 会与同名 DLL 冲突；仅对其它位置（如 conda Library/bin）显式加入。
+$stdSqlite = [IO.Path]::GetFullPath((Join-Path $pythonHome "DLLs/sqlite3.dll"))
+if ($sqliteDll -and
+    [string]::Equals([IO.Path]::GetFullPath($sqliteDll), $stdSqlite, [StringComparison]::OrdinalIgnoreCase)) {
+    Write-Host "    sqlite3.dll: in DLLs (auto-bundled by Nuitka, skip explicit include)"
+    $sqliteDll = $null
+}
+
 Write-Host "==> Building Forza Gallery Sync CLI (onefile) with Nuitka..."
 Write-Host "    Python: $Python"
 Write-Host "    Entry : $entry"
 Write-Host "    Output: $outDir"
-if ($sqliteDll) { Write-Host "    sqlite3.dll: $sqliteDll" } else { Write-Host "    sqlite3.dll: not found (skipping explicit include)" }
+if ($sqliteDll) { Write-Host "    sqlite3.dll: $sqliteDll (explicit include)" } else { Write-Host "    sqlite3.dll: none explicit (Nuitka auto-bundles or not found)" }
 
 $nuitkaArgs = @(
     "-m", "nuitka",
