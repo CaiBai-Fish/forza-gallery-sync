@@ -26,4 +26,14 @@
     <EmbeddedResource Include="payload.zip" Condition="Exists('payload.zip')" />
   </ItemGroup>
 
+  <!-- msi\ 是独立的 MSI 打包工程（installer\msi\customaction：DTF 托管自定义动作），
+       必须从本项目的默认编译/资源通配（**/*.cs 等）中排除，否则会把
+       CustomActions.cs 一并编译导致 CS0246（Setup 项目未引用 DTF 程序集）。 -->
+  <ItemGroup>
+    <Compile Remove="msi\**" />
+    <EmbeddedResource Remove="msi\**" />
+    <None Remove="msi\**" />
+    <Content Remove="msi\**" />
+  </ItemGroup>
+
 </Project>
