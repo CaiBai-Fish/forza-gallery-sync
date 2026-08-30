@@ -39,3 +39,9 @@ web-legacy/runtime/
 web-legacy/app-icon.png
 web-legacy/src-tauri/target/
 web-legacy/src-tauri/gen/
+
+# WiX MSI 构建（工具缓存与产物）
+.wix/
+installer/msi/scratch/
+installer/msi/customaction/bin/
+installer/msi/customaction/obj/

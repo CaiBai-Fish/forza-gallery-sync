@@ -151,7 +151,7 @@ dotnet run -p:Platform=x64            # 运行桌面窗口
 ```bash
 cd web
 
-# 一键构建安装程序（自动完成以下四步，产物：web/dist/ForzaGallerySync-Setup-0.4.1.exe，约 191MB）
+# 一键构建安装程序（自动完成以下四步，产物：web/dist/ForzaGallerySync-Setup-0.4.2.exe，约 191MB）
 powershell -ExecutionPolicy Bypass -File .\make-installer.ps1
 ```
 
@@ -164,14 +164,28 @@ powershell -ExecutionPolicy Bypass -File .\make-installer.ps1
 安装程序用法：
 
 ```bash
-ForzaGallerySync-Setup-0.4.1.exe                     # 交互式安装
-ForzaGallerySync-Setup-0.4.1.exe --install [目录]     # 静默安装
-ForzaGallerySync-Setup-0.4.1.exe --uninstall          # 卸载
+ForzaGallerySync-Setup-0.4.2.exe                     # 交互式安装
+ForzaGallerySync-Setup-0.4.2.exe --install [目录]     # 静默安装
+ForzaGallerySync-Setup-0.4.2.exe --uninstall          # 卸载
 ```
 
 安装位置默认 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，开始菜单含应用与卸载快捷方式，并写入卸载注册表项。
 照片数据库（`forza_sync.db`）默认存放在**安装目录**内；卸载时会自动把数据库保留到用户配置目录
 （`%APPDATA%\forza-sync\`），不会因卸载而丢失。
+
+除 EXE 安装程序外，还提供**标准 MSI 安装包**（Windows Installer，per-user、x64，WiX v4 构建；支持静默安装/卸载与组策略分发）：
+
+```bash
+# 构建 MSI（产物：web/dist/ForzaGallerySync-0.4.2.msi）
+powershell -ExecutionPolicy Bypass -File .\make-msi.ps1
+```
+
+```bash
+msiexec /i ForzaGallerySync-0.4.2.msi /qn        # 静默安装
+msiexec /x ForzaGallerySync-0.4.2.msi /qn        # 静默卸载
+```
+
+MSI 卸载时同样会把照片数据库保留到 `%APPDATA%\forza-sync\`。
 
 > 说明：
 > - 项目已配置 `WindowsPackageType=None` + `WindowsAppSDKSelfContained=true`，
@@ -399,6 +413,9 @@ pytest
 
 > 完整更新日志见 [CHANGELOG.md](CHANGELOG.md)；GitHub Release 的发布说明
 > 由 `.github/workflows/build-release.yml` 自动从 CHANGELOG 对应版本章节生成。
+
+### v0.4.2
+- 新增：**MSI 安装包**（WiX v4，per-user、x64，`make-msi.ps1` → `web/dist/ForzaGallerySync-0.4.2.msi`）；支持静默安装/卸载，卸载自动保留数据库
 
 ### v0.4.1
 - 修复：CLI（Nuitka）在标准 CPython 下构建 sqlite3.dll 冲突；GUI 安装程序 / CLI / 应用 exe 增加应用图标

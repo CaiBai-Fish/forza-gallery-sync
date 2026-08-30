@@ -11,6 +11,12 @@
 
 - （预留：下一个版本的变更）
 
+## [0.4.2] - 2026-08-30
+
+### 新增
+- **MSI 安装包**：新增标准 Windows Installer 分发（`web\make-msi.ps1` → `web\dist\ForzaGallerySync-0.4.2.msi`，per-user、x64，WiX v4 构建；支持静默安装/卸载与组策略分发）
+- MSI 卸载时自动把照片数据库保留到 `%APPDATA%\forza-sync\`，不会因卸载丢失
+
 ## [0.4.1] - 2026-08-30
 
 ### 修复

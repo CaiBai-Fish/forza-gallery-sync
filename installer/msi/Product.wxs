@@ -1,0 +1,66 @@
+<Wix xmlns="http://wixtoolset.org/schemas/v4/wxs">
+  <!--
+    Forza Gallery Sync 安装包（per-user，x64）。
+    安装目录：%LOCALAPPDATA%\Programs\ForzaGallerySync（与 EXE 安装器一致，
+    应用据此检测安装版布局并使用 {exe}\python 运行时）。
+    由 web\make-msi.ps1 构建：先发布应用自包含目录 + 解压 Python 运行时，
+    再用 PowerShell 生成 app.wxs（组件清单），最后 wix build 打包。
+    卸载前通过 DTF 托管自定义动作把数据库保留到 %APPDATA%\forza-sync。
+  -->
+  <Package Name="Forza Gallery Sync" Manufacturer="Forza Gallery Sync"
+           Version="$(var.ProductVersion)" UpgradeCode="{C4B8D2A1-6F3E-4C1A-9B5D-2E7A8F0D4C6B}"
+           Language="1033" Scope="perUser" Compressed="yes" InstallerVersion="500">
+    <MajorUpgrade DowngradeErrorMessage="A newer version of [ProductName] is already installed." />
+    <MediaTemplate EmbedCab="yes" />
+
+    <Icon Id="AppIcon" SourceFile="$(var.IconFile)" />
+
+    <StandardDirectory Id="LocalAppDataFolder">
+      <Directory Id="ProgramsDir" Name="Programs">
+        <Directory Id="INSTALLFOLDER" Name="ForzaGallerySync" />
+      </Directory>
+    </StandardDirectory>
+
+    <StandardDirectory Id="ProgramMenuFolder">
+      <Directory Id="ApplicationProgramsFolder" Name="Forza Gallery Sync" />
+    </StandardDirectory>
+
+    <Feature Id="ProductFeature" Title="Forza Gallery Sync" Level="1">
+      <ComponentGroupRef Id="AppFiles" />
+      <ComponentRef Id="StartMenuShortcut" />
+      <ComponentRef Id="UninstallShortcut" />
+    </Feature>
+
+    <!-- 卸载保留数据库的 DTF 托管自定义动作（编译产物由 make-msi.ps1 传入） -->
+    <Binary Id="FgsCA" SourceFile="$(var.CaBinary)" />
+
+    <CustomAction Id="SetPreserveData" Property="PreserveDatabase"
+                  Value="[INSTALLFOLDER]|[AppDataFolder]forza-sync" />
+    <CustomAction Id="PreserveDatabase" BinaryRef="FgsCA"
+                  DllEntry="ForzaGallerySync.CA!ForzaGallerySync.CA.CustomActions.PreserveDatabase"
+                  Execute="deferred" Return="ignore" HideTarget="yes" />
+
+    <InstallExecuteSequence>
+      <Custom Action="SetPreserveData" Before="PreserveDatabase" Condition="REMOVE=&quot;ALL&quot;" />
+      <Custom Action="PreserveDatabase" Before="RemoveFiles" Condition="REMOVE=&quot;ALL&quot;" />
+    </InstallExecuteSequence>
+  </Package>
+
+  <Fragment>
+    <Component Id="StartMenuShortcut" Directory="ApplicationProgramsFolder"
+               Guid="{1A2B3C4D-5E6F-4A8B-9C0D-1E2F3A4B5C6D}">
+      <Shortcut Id="AppShortcut" Name="Forza Gallery Sync"
+                Target="[INSTALLFOLDER]forza-gallery-sync.exe" WorkingDirectory="INSTALLFOLDER"
+                Icon="AppIcon" />
+      <RemoveFolder Id="RemoveApplicationProgramsFolder" Directory="ApplicationProgramsFolder" On="uninstall" />
+      <RegistryValue Root="HKCU" Key="Software\ForzaGallerySync" Name="StartMenu" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+
+    <Component Id="UninstallShortcut" Directory="ApplicationProgramsFolder"
+               Guid="{2B3C4D5E-6F7A-4B9C-8D0E-1F2A3B4C5D6E}">
+      <Shortcut Id="UninstallShortcutLn" Name="卸载 Forza Gallery Sync"
+                Target="[System64Folder]msiexec.exe" Arguments="/x [ProductCode]" />
+      <RegistryValue Root="HKCU" Key="Software\ForzaGallerySync" Name="UninstallShortcut" Type="integer" Value="1" KeyPath="yes" />
+    </Component>
+  </Fragment>
+</Wix>

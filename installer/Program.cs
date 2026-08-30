@@ -28,7 +28,7 @@ internal static class Program
 {
     private const string AppName = "Forza Gallery Sync";
     private const string ExeName = "forza-gallery-sync.exe";
-    private const string Version = "0.4.1";
+    private const string Version = "0.4.2";
     private const string PayloadResource = "ForzaGallerySync.Setup.payload.zip";
     private const string DefaultInstallDir = "%LOCALAPPDATA%\\Programs\\ForzaGallerySync";
     private const string UninstallRegPath = @"Software\Microsoft\Windows\CurrentVersion\Uninstall\ForzaGallerySync";

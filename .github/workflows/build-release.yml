@@ -72,6 +72,7 @@ jobs:
 
           $assets = @(
             "- GUI 安装程序：ForzaGallerySync-Setup-$version.exe（安装时把 Python/.NET 运行时解压到安装目录）",
+            "- MSI 安装包：ForzaGallerySync-$version.msi（per-user，Windows Installer 标准包，卸载保留数据库）",
             "- CLI 单文件：forza-sync.exe（Nuitka 编译，自包含）"
           )
           $header = "## Forza Gallery Sync $version"
@@ -98,6 +99,16 @@ jobs:
           powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
             -PythonEnv $env:PY_HOME -Version $env:VERSION
 
+      - name: Restore WiX tool
+        shell: pwsh
+        run: dotnet tool restore
+
+      - name: Build MSI installer
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\web\make-msi.ps1 `
+            -PythonEnv $env:PY_HOME -Version $env:VERSION
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -105,6 +116,7 @@ jobs:
           path: |
             cli-dist/forza-sync.exe
             web/dist/ForzaGallerySync-Setup-*.exe
+            web/dist/ForzaGallerySync-*.msi
 
       - name: Create / update GitHub Release (tags v* or manual dispatch)
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
@@ -116,6 +128,7 @@ jobs:
           files: |
             cli-dist/forza-sync.exe
             web/dist/ForzaGallerySync-Setup-*.exe
+            web/dist/ForzaGallerySync-*.msi
           draft: false
           prerelease: false
 
