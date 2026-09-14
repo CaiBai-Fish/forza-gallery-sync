@@ -109,16 +109,18 @@ jobs:
             Write-Host ("{0}  {1} MB" -f $f.Name, [math]::Round($f.Length / 1MB, 1))
           }
 
-          # 内嵌运行时必须包含 playwright，否则打包版无法使用「浏览器一键登录」
+          # 内嵌运行时必须包含 forza_sync、requests 依赖链与 playwright
+          # （playwright 缺失会导致打包版无法使用「浏览器一键登录」）
           Add-Type -AssemblyName System.IO.Compression.FileSystem
           $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path "web/python-runtime.zip"))
           $names = @($archive.Entries | ForEach-Object { $_.FullName })
           $archive.Dispose()
           if (-not ($names -match '^forza_sync[\\/]')) { throw "python-runtime.zip lacks the forza_sync package" }
-          if (-not ($names -match 'playwright[\\/]driver[\\/]node\.exe$')) {
+          if (-not ($names -match 'site-packages[\\/]requests[\\/]')) { throw "python-runtime.zip lacks requests" }
+          if (-not ($names -match 'site-packages[\\/]playwright[\\/]driver[\\/]node\.exe$')) {
             throw "python-runtime.zip lacks playwright (browser login would be unavailable)"
           }
-          Write-Host "python-runtime.zip: $($names.Count) entries (playwright bundled)"
+          Write-Host "python-runtime.zip: $($names.Count) entries (forza_sync + requests + playwright)"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
