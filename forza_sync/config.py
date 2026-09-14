@@ -87,7 +87,7 @@ class Config:
     token_issued_at: str = ""  # 最近一次获取/刷新 access token 的时间（ISO8601 UTC）
     token_expires_in: int = 0  # access token 有效期（秒）
     download_dir: str = ""  # 为空时默认 ~/ForzaPhotos
-    database_path: str = ""  # 为空时默认：桌面安装版→安装目录，CLI/开发→配置目录
+    database_path: str = ""  # 为空时默认：桌面版→程序目录/默认安装目录（便携化），CLI/开发→配置目录
     page_size: int = DEFAULT_PAGE_SIZE
     pagination: str = DEFAULT_PAGINATION
     timeout: int = 30
@@ -156,8 +156,8 @@ class Config:
         if self.database_path:
             return Path(self.database_path).expanduser()
 
-        # 桌面安装版（PythonHost 已设 FORZA_SYNC_APP_DIR=安装目录）：数据库默认放安装目录，
-        # 便于随安装目录整体携带（便携化）；并一次性迁移旧配置目录中的数据库。
+        # 桌面版（PythonHost 已设 FORZA_SYNC_APP_DIR=程序目录或默认安装目录）：数据库默认
+        # 放在同一目录，便于随目录整体携带（便携化）；并一次性迁移旧配置目录中的数据库。
         app_dir = os.environ.get("FORZA_SYNC_APP_DIR")
         if app_dir:
             app_path = Path(app_dir)

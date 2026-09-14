@@ -1,10 +1,11 @@
 # Build the Python runtime package from the FGS conda env (including the
 # forza_sync package).
-#   - Always produces web\python-runtime.zip (embedded as an assembly resource
-#     for dev/portable fallback).
+#   - Always produces web\python-runtime.zip, embedded into the app assembly
+#     (App\Services\PythonHost.cs). The GUI program extracts it on first run,
+#     either into its own program directory (clean/portable directory) or into
+#     the default install directory (%LOCALAPPDATA%\Programs\ForzaGallerySync).
 #   - Optionally, with -ExtractTo <dir>, also writes the extracted runtime
-#     directory (used by make-installer.ps1 to place python\ next to the app
-#     in the install directory).
+#     directory (handy for local debugging).
 #
 # Usage (in web dir):
 #   powershell -ExecutionPolicy Bypass -File .\make-runtime.ps1 [-ExtractTo <dir>]
@@ -47,8 +48,15 @@ Write-Host "==> Copy Lib (stdlib + site-packages) ..."
 Copy-Item "$PythonEnv/Lib" "$stageDir/Lib" -Recurse -Force
 
 # Prune site-packages: keep only what the app needs
+# requests chain: requests / urllib3 / charset_normalizer / idna / certifi
+# browser login: playwright (+ greenlet for sync API, pyee for the event emitter,
+#                typing_extensions kept as a site-packages file below)
 Write-Host "==> Prune site-packages"
-$keep = @("requests", "urllib3", "charset_normalizer", "idna", "certifi", "pip", "setuptools", "_distutils_hack", "distutils-precedence")
+$keep = @(
+    "requests", "urllib3", "charset_normalizer", "idna", "certifi",
+    "playwright", "greenlet", "pyee",
+    "pip", "setuptools", "_distutils_hack", "distutils-precedence"
+)
 Get-ChildItem "$stageDir/Lib/site-packages" -Directory -ErrorAction SilentlyContinue | ForEach-Object {
     $name = $_.Name
     $keepIt = $false
@@ -57,8 +65,12 @@ Get-ChildItem "$stageDir/Lib/site-packages" -Directory -ErrorAction SilentlyCont
     }
     if (-not $keepIt) { Remove-Item $_.FullName -Recurse -Force }
 }
+# 单文件模块：*.pth（路径注入）、typing_extensions.py（playwright/pyee 兜底依赖）保留
+$keepFiles = @("typing_extensions.py")
 Get-ChildItem "$stageDir/Lib/site-packages" -File -ErrorAction SilentlyContinue | ForEach-Object {
-    if ($_.Name -notlike "*.pth" -and $_.Name -notlike "README*") { Remove-Item $_.FullName -Force }
+    if ($_.Name -notlike "*.pth" -and $_.Name -notlike "README*" -and $keepFiles -notcontains $_.Name) {
+        Remove-Item $_.FullName -Force
+    }
 }
 
 Write-Host "==> Copy DLLs (.pyd extension modules)"
@@ -83,7 +95,23 @@ Write-Host "==> Compress ..."
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$stageDir/*" -DestinationPath $zipPath -Force
 
-# Optional: also emit the extracted runtime directory (used by make-installer.ps1)
+# ---- sanity check: the archive must carry forza_sync, should carry playwright ----
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$archive = [IO.Compression.ZipFile]::OpenRead($zipPath)
+$entryNames = @($archive.Entries | ForEach-Object { $_.FullName })
+$archive.Dispose()
+
+if (-not ($entryNames -match '^forza_sync[\\/]')) {
+    throw "Runtime zip is missing the forza_sync package: $zipPath"
+}
+if ($entryNames -match 'playwright[\\/]driver[\\/]node\.exe$') {
+    Write-Host "==> Verify: playwright bundled ($($entryNames.Count) entries) - browser login available"
+} else {
+    Write-Warning ("playwright is NOT bundled in $zipPath - the packaged app cannot do browser login. " +
+        "Run 'pip install playwright' in the build environment and rebuild.")
+}
+
+# Optional: also emit the extracted runtime directory (handy for local debugging)
 if ($ExtractTo) {
     Write-Host "==> Extract folder -> $ExtractTo"
     if (Test-Path $ExtractTo) { Remove-Item $ExtractTo -Recurse -Force }
@@ -95,6 +123,6 @@ $mb = [math]::Round((Get-Item $zipPath).Length / 1MB, 1)
 Write-Host "==> Done: $zipPath ($mb MB)"
 
 Remove-Item $stageDir -Recurse -Force -ErrorAction SilentlyContinue
-# 显式退出码：脚本可能被 make-installer.ps1 以 & 进程内调用，
+# 显式退出码：脚本可能被 make-gui.ps1 以 & 进程内调用，
 # 正常结束不会自动更新 $LASTEXITCODE，需显式置 0 供调用方判断。
 exit 0

@@ -3,7 +3,7 @@
 # Produces a standalone single-file exe (forza-sync.exe) with embedded Python.
 param(
     [string]$Python = "",
-    [string]$Version = "0.4.2"
+    [string]$Version = "0.5.0"
 )
 $ErrorActionPreference = "Stop"
 

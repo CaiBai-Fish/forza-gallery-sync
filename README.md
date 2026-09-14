@@ -16,7 +16,7 @@ Forza Horizon 系列游戏内拍摄的照片不会保存在本地，而是上传
 - ✅ 多线程并发下载、失败重试、单张失败不影响整体
 - ✅ 命令行：`config`（配置）/ `login`（浏览器一键登录）/ `sync`（同步）/ `token`（Token 管理）/ `status`（状态）
 - ✅ 配置与代码分离（配置文件默认在用户配置目录）
-- ✅ 桌面版**内置 Python 运行时**，发布为**安装程序**：安装时把 Python/.NET 运行时解压到安装目录，脱离 Python 环境即可运行
+- ✅ 桌面版**内置 Python 运行时**：发布为自包含目录，解压即用，**首次运行自动准备运行时**（干净目录→程序目录，否则→默认安装目录），脱离 Python 环境即可运行
 
 ## 安装
 
@@ -114,9 +114,9 @@ forza-sync token refresh
 在独立桌面窗口中完成配置、登录、同步与照片浏览，无需手敲命令。
 
 > 架构说明：Python 解释器通过 **Python.NET** 直接嵌入桌面应用进程，前端
-> **WinUI 3（C# + XAML）** 调用 :mod:`forza_sync.service` 的纯函数。安装程序把 Python 运行时（含 `forza_sync` 包）
-> 随应用一起**解压到安装目录**，程序运行时直接使用安装目录里的环境，
-> 用户无需单独安装 Python / Node / Rust / WebView2。
+> **WinUI 3（C# + XAML）** 调用 :mod:`forza_sync.service` 的纯函数。Python 运行时（含 `forza_sync` 包）
+> **内嵌在程序内**，首次运行时自动解压（干净目录→程序目录，否则→默认安装目录），
+> 用户无需单独安装 Python / Node / Rust / WebView2，也无需运行安装程序。
 
 界面包含四个模块：
 
@@ -137,62 +137,54 @@ dotnet build -p:Platform=x64          # 编译
 dotnet run -p:Platform=x64            # 运行桌面窗口
 ```
 
-> Python 运行时定位：安装目录 `python\` → 环境变量 `FORZA_SYNC_PYTHON_HOME` →
-> 内嵌资源 zip（`make-runtime.ps1` 生成）→ 均未找到时给出明确错误。
-> 开发时可设置 `FORZA_SYNC_PYTHON_HOME` 指向本地 Python 环境。
+> Python 运行时定位：程序目录 / 默认安装目录的 `python\` → 环境变量 `FORZA_SYNC_PYTHON_HOME` →
+> 内嵌资源 zip（`make-runtime.ps1` 生成，首次运行自动解压）→ 均失败时给出明确错误。
+> 开发时可设置 `FORZA_SYNC_PYTHON_HOME` 指向本地 Python 环境；
+> 想让运行时/数据库落在指定目录，可设置 `FORZA_SYNC_INSTALL_DIR` / `FORZA_SYNC_APP_DIR`。
 
-### 打包桌面版安装程序（无需 Python / Node / Rust 环境）
+### 打包桌面版程序（无需 Python / Node / Rust 环境）
 
 桌面版把应用、.NET / Windows App SDK 运行时与 Python 运行时（含 `forza_sync`
-包与 `requests` 依赖）一起打成**安装程序**。安装时把全部运行时解压到
-**安装目录**，程序运行时直接使用安装目录里的环境，**完全脱离本机 Python
-环境**即可运行。
+包与 `requests` 依赖）一起发布为**自包含目录**，不再需要安装程序：**首次运行时
+程序自己准备 Python 运行时**，**完全脱离本机 Python 环境**即可运行。
 
 ```bash
 cd web
 
-# 一键构建安装程序（自动完成以下四步，产物：web/dist/ForzaGallerySync-Setup-0.4.2.exe，约 191MB）
-powershell -ExecutionPolicy Bypass -File .\make-installer.ps1
+# 一键构建（产物：web/dist/ForzaGallerySync-0.5.0-win-x64/，另附同名 .zip）
+powershell -ExecutionPolicy Bypass -File .\make-gui.ps1
+
+# 只要目录、不压缩
+powershell -ExecutionPolicy Bypass -File .\make-gui.ps1 -NoZip
 ```
 
-流程（`make-installer.ps1` 内部）：
-1. 发布桌面应用为**自包含目录**（exe + .NET 运行时 + Windows App SDK）
-2. 用 `make-runtime.ps1` 把 Python 运行时**解压**到 `app\python`
-3. 把整个 `app\` 压缩为 `payload.zip` 内嵌进安装程序
-4. 发布单文件安装程序（`installer\` 项目，自包含，不依赖目标机器 .NET）
+流程（`make-gui.ps1` 内部）：
+1. 生成内嵌 Python 运行时 `python-runtime.zip`（`forza_sync` 源码/依赖更新时自动重新生成）
+2. 发布桌面应用为**自包含目录**（exe + .NET 运行时 + Windows App SDK，运行时 zip 内嵌在 exe 内）
+3. 写入发布清单 `app-files.txt`（程序据此判断是否运行在**干净目录**）
+4. 压缩整个目录为 `ForzaGallerySync-<版本>-win-x64.zip`
 
-安装程序用法：
+首次运行时，程序按「程序目录是否干净」决定运行时落点：
 
-```bash
-ForzaGallerySync-Setup-0.4.2.exe                     # 交互式安装
-ForzaGallerySync-Setup-0.4.2.exe --install [目录]     # 静默安装
-ForzaGallerySync-Setup-0.4.2.exe --uninstall          # 卸载
-```
+| 程序目录状态 | Python 运行时位置 | 数据库位置 |
+| --- | --- | --- |
+| **干净目录**：只有发布文件（含 `app-files.txt`）与程序自己生成的文件 | 程序目录 `python\`（便携模式，整个目录可整体搬移） | 程序目录 |
+| **其它情况**：目录内还有别的文件 | `%LOCALAPPDATA%\Programs\ForzaGallerySync\python\`（默认安装目录） | 默认安装目录 |
 
-安装位置默认 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，开始菜单含应用与卸载快捷方式，并写入卸载注册表项。
-照片数据库（`forza_sync.db`）默认存放在**安装目录**内；卸载时会自动把数据库保留到用户配置目录
-（`%APPDATA%\forza-sync\`），不会因卸载而丢失。
-
-除 EXE 安装程序外，还提供**标准 MSI 安装包**（Windows Installer，per-user、x64，WiX v4 构建；支持静默安装/卸载与组策略分发）：
-
-```bash
-# 构建 MSI（产物：web/dist/ForzaGallerySync-0.4.2.msi）
-powershell -ExecutionPolicy Bypass -File .\make-msi.ps1
-```
-
-```bash
-msiexec /i ForzaGallerySync-0.4.2.msi /qn        # 静默安装
-msiexec /x ForzaGallerySync-0.4.2.msi /qn        # 静默卸载
-```
-
-MSI 卸载时同样会把照片数据库保留到 `%APPDATA%\forza-sync\`。
+> - 默认安装目录可用环境变量 `FORZA_SYNC_INSTALL_DIR` 覆盖；程序目录不可写时自动回退到安装目录。
+> - 解压出的运行时会在 `python\.runtime-id` 记录内嵌 zip 的 SHA256：程序升级
+>   （内嵌 zip 变化）后自动重新解压，避免旧运行时残留。
 
 > 说明：
 > - 项目已配置 `WindowsPackageType=None` + `WindowsAppSDKSelfContained=true`，
->   无需系统预装 Windows App Runtime；安装包同时自带 .NET 运行时。
-> - 运行时定位优先级：**安装目录 `python\`** → `FORZA_SYNC_PYTHON_HOME` →
->   内嵌资源 zip（开发/便携回退，解压到 `%LOCALAPPDATA%\ForzaGallerySync\runtime\v1`）。
-> - 打包脚本（`make-runtime.ps1` / `make-installer.ps1` / `make-cli.ps1`）不硬编码
+>   无需系统预装 Windows App Runtime；发布目录同时自带 .NET 运行时。
+> - 内嵌运行时包含 `forza_sync`、`requests` 依赖链与 **playwright**（含 `node.exe` 驱动、`greenlet`、`pyee`）：
+>   打包版的「浏览器一键登录」开箱可用，用户无需安装任何 Python 包（仅当无系统浏览器、需回退
+>   Playwright Chromium 时才需 `playwright install chromium`）。
+> - WinUI 3 无法以单文件发布（XAML 依赖同目录原生库），因此桌面版发布为**目录 + zip**。
+> - 运行时定位优先级：**程序目录/安装目录 `python\`** → `FORZA_SYNC_PYTHON_HOME` →
+>   内嵌资源 zip（首次运行解压到程序目录或默认安装目录）。
+> - 打包脚本（`make-runtime.ps1` / `make-gui.ps1` / `make-cli.ps1`）不硬编码
 >   本机路径：默认从 PATH 自动探测 `python`，也可用 `-PythonEnv <目录>` /
 >   `-Python <python.exe>` 显式指定。
 > - 开发调试用 `dotnet build -p:Platform=x64` / `dotnet run -p:Platform=x64`；
@@ -215,6 +207,9 @@ powershell -ExecutionPolicy Bypass -File .\web\make-cli.ps1
 > - 需要本机安装 MSVC（Nuitka 自动定位 VS 的 `vcvarsall`）与 `pip install nuitka`。
 > - CLI 与 GUI 可**分别发布**：服务器 / 脚本 / 定时任务用 `forza-sync.exe`（轻量），
 >   桌面用户用 `forza-gallery-sync.exe`（GUI）。两者共用同一份配置与数据库。
+> - CLI 单文件为保持轻量**未包含 playwright**（驱动约 100MB），因此 `forza-sync login`
+>   需要本机可导入 playwright（`pip install playwright`）；也可先用 **GUI 版的「浏览器一键登录」**
+>   完成登录，CLI 会复用同一份配置与 Token。
 
 ## 目录结构
 
@@ -246,7 +241,7 @@ ForzaPhotos/
 | `token_issued_at` | 最近一次获取/刷新 access token 的时间（自动维护） | 空 |
 | `token_expires_in` | access token 有效期秒数（自动维护） | 0 |
 | `download_dir` | 照片保存目录 | `~/ForzaPhotos` |
-| `database_path` | SQLite 数据库路径 | 桌面安装版：`<安装目录>/forza_sync.db`；CLI/开发：`<配置目录>/forza_sync.db` |
+| `database_path` | SQLite 数据库路径 | 桌面版：`<程序目录或默认安装目录>/forza_sync.db`；CLI/开发：`<配置目录>/forza_sync.db` |
 | `page_size` | 每页数量 | 50 |
 | `pagination` | 分页方案（`auto` 自动探测） | `auto` |
 | `timeout` | 请求超时（秒） | 30 |
@@ -387,13 +382,10 @@ client_id=nuxt-spa
 │   ├── Models/               # 数据模型（snake_case ↔ PascalCase 映射）
 │   ├── Services/             # Python.NET 桥接（PythonHost / PyBridge / Logger）
 │   ├── Converters/           # XAML 值转换器
-│   ├── make-runtime.ps1      # 生成 Python 运行时（python-runtime.zip，可解压目录）
-│   ├── make-installer.ps1    # 打包桌面版安装程序（web/dist/ForzaGallerySync-Setup-*.exe）
+│   ├── make-runtime.ps1      # 生成 Python 运行时（python-runtime.zip，内嵌进应用 exe）
+│   ├── make-gui.ps1          # 打包桌面版程序（web/dist/ForzaGallerySync-*-win-x64/ + .zip）
 │   ├── make-cli.ps1          # Nuitka 打包纯后端 CLI（cli-dist/forza-sync.exe）
-│   └── publish-single.ps1    # （已废弃）旧单文件发布，转交 make-installer.ps1
-├── installer/                # 安装程序工程（自包含单文件，内嵌 payload.zip）
-│   ├── ForzaGallerySync.Setup.csproj
-│   └── Program.cs            # 安装/卸载/快捷方式/卸载注册表逻辑
+│   └── publish-single.ps1    # （已废弃）别名，转交 make-gui.ps1
 ├── CHANGELOG.md              # 更新日志（GitHub Release 说明由 workflow 自动生成）
 ├── cli_entry.py              # Nuitka 打包 CLI 的入口（调用 forza_sync.cli.main）
 ├── config.example.json       # 配置示例
@@ -413,6 +405,14 @@ pytest
 
 > 完整更新日志见 [CHANGELOG.md](CHANGELOG.md)；GitHub Release 的发布说明
 > 由 `.github/workflows/build-release.yml` 自动从 CHANGELOG 对应版本章节生成。
+
+### v0.5.0
+- 变更：**取消 MSI 打包与 Setup 安装程序**，构建直接输出 GUI 版（`make-gui.ps1` →
+  `web/dist/ForzaGallerySync-0.5.0-win-x64/` + 同名 `.zip`）与 CLI 版（`cli-dist/forza-sync.exe`）
+- 新增：GUI **首次运行自动准备 Python 运行时** —— 程序目录为**干净目录**时解压到程序目录（便携），
+  否则解压到默认安装目录 `%LOCALAPPDATA%\Programs\ForzaGallerySync`（可用 `FORZA_SYNC_INSTALL_DIR` 覆盖）；
+  运行时按内嵌 zip 的 SHA256 标记校验，程序升级后自动重新解压
+- 移除：`web/make-msi.ps1`、`web/msi-generate.ps1`、`installer/`（Setup + MSI 工程）、WiX 工具依赖
 
 ### v0.4.2
 - 新增：**MSI 安装包**（WiX v4，per-user、x64，`make-msi.ps1` → `web/dist/ForzaGallerySync-0.4.2.msi`）；支持静默安装/卸载，卸载自动保留数据库

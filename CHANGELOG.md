@@ -11,6 +11,29 @@
 
 - （预留：下一个版本的变更）
 
+## [0.5.0] - 2026-09-14
+
+### 变更
+- **发布方式改为直接输出程序**：取消 MSI 打包与独立的 Setup 安装程序；`web\make-gui.ps1` 直接产出 GUI 版
+  （`web\dist\ForzaGallerySync-<版本>-win-x64\` 及同名 `.zip`），`web\make-cli.ps1` 继续产出 CLI 单文件
+- **内嵌 Python 运行时纳入 playwright**（含驱动 `node.exe`、`greenlet`、`pyee`）：打包版「浏览器一键登录」
+  开箱即用，无需用户另装 Python 包（运行时 zip 31MB → 68MB，GUI 发布 zip 96MB → 132MB）
+- **GUI 首次运行自行准备 Python 运行时**：程序目录为**干净目录**（只含发布清单 `app-files.txt` 所列文件与
+  程序自己生成的文件）时把运行时解压到程序目录（便携模式），否则解压到默认安装目录
+  `%LOCALAPPDATA%\Programs\ForzaGallerySync`（可用 `FORZA_SYNC_INSTALL_DIR` 覆盖；程序目录不可写时回退安装目录）
+- 解压出的运行时按内嵌 zip 的 SHA256（`python\.runtime-id`）校验，程序升级后自动重新解压，避免旧运行时残留
+- 数据库/配置跟随运行时目录：便携模式放程序目录，安装模式放默认安装目录（沿用 `FORZA_SYNC_APP_DIR`）
+- 发布清单 `app-files.txt` 由 `make-gui.ps1` 生成并随发布目录/zip 一起分发
+- `make-gui.ps1` 在 `forza_sync` 源码 / `requirements.txt` / `make-runtime.ps1` 更新时自动重新生成运行时 zip（`-ForceRuntime` 可强制）
+
+### 修复
+- `FORZA_SYNC_APP_DIR` 对嵌入式解释器不可见（.NET 侧写环境变量不会被 Python 的 `os.environ` 读取）：
+  改为同时写入 Python 侧 `os.environ`，桌面版数据库/配置才会正确落在程序目录或安装目录
+
+### 移除
+- 移除 MSI 打包（`web\make-msi.ps1`、`web\msi-generate.ps1`、`installer\msi\`）与 WiX 工具依赖（`dotnet-tools.json`）
+- 移除 Setup 安装程序（`installer\`、`web\make-installer.ps1`）——GUI 自己解压运行时后不再需要
+
 ## [0.4.2] - 2026-08-30
 
 ### 新增

@@ -1,5 +1,0 @@
-# 由 web\make-installer.ps1 生成，内含完整应用负载，不入库
-payload.zip
-
-bin/
-obj/

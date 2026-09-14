@@ -71,8 +71,7 @@ jobs:
           $section = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "" }
 
           $assets = @(
-            "- GUI 安装程序：ForzaGallerySync-Setup-$version.exe（安装时把 Python/.NET 运行时解压到安装目录）",
-            "- MSI 安装包：ForzaGallerySync-$version.msi（per-user，Windows Installer 标准包，卸载保留数据库）",
+            "- GUI 版：ForzaGallerySync-$version-win-x64.zip（解压即用；首次运行自动准备 Python 运行时：程序目录为干净目录时解压到程序目录，否则解压到 %LOCALAPPDATA%\Programs\ForzaGallerySync）",
             "- CLI 单文件：forza-sync.exe（Nuitka 编译，自包含）"
           )
           $header = "## Forza Gallery Sync $version"
@@ -93,21 +92,33 @@ jobs:
           powershell -ExecutionPolicy Bypass -File .\web\make-cli.ps1 `
             -Python "$env:PY_HOME\python.exe" -Version $env:VERSION
 
-      - name: Build GUI installer
+      - name: Build GUI (self-contained folder + zip)
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
+          powershell -ExecutionPolicy Bypass -File .\web\make-gui.ps1 `
             -PythonEnv $env:PY_HOME -Version $env:VERSION
 
-      - name: Restore WiX tool
-        shell: pwsh
-        run: dotnet tool restore
-
-      - name: Build MSI installer
+      - name: Verify build outputs
         shell: pwsh
         run: |
-          powershell -ExecutionPolicy Bypass -File .\web\make-msi.ps1 `
-            -PythonEnv $env:PY_HOME -Version $env:VERSION
+          $gui = Get-ChildItem "web/dist/ForzaGallerySync-*-win-x64.zip" -ErrorAction SilentlyContinue
+          $cli = Get-Item "cli-dist/forza-sync.exe" -ErrorAction SilentlyContinue
+          if (-not $gui) { throw "GUI release zip not found: web/dist/ForzaGallerySync-*-win-x64.zip" }
+          if (-not $cli) { throw "CLI single-file not found: cli-dist/forza-sync.exe" }
+          foreach ($f in @($gui) + @($cli)) {
+            Write-Host ("{0}  {1} MB" -f $f.Name, [math]::Round($f.Length / 1MB, 1))
+          }
+
+          # 内嵌运行时必须包含 playwright，否则打包版无法使用「浏览器一键登录」
+          Add-Type -AssemblyName System.IO.Compression.FileSystem
+          $archive = [IO.Compression.ZipFile]::OpenRead((Resolve-Path "web/python-runtime.zip"))
+          $names = @($archive.Entries | ForEach-Object { $_.FullName })
+          $archive.Dispose()
+          if (-not ($names -match '^forza_sync[\\/]')) { throw "python-runtime.zip lacks the forza_sync package" }
+          if (-not ($names -match 'playwright[\\/]driver[\\/]node\.exe$')) {
+            throw "python-runtime.zip lacks playwright (browser login would be unavailable)"
+          }
+          Write-Host "python-runtime.zip: $($names.Count) entries (playwright bundled)"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -115,8 +126,7 @@ jobs:
           name: forza-gallery-sync-release
           path: |
             cli-dist/forza-sync.exe
-            web/dist/ForzaGallerySync-Setup-*.exe
-            web/dist/ForzaGallerySync-*.msi
+            web/dist/ForzaGallerySync-*-win-x64.zip
 
       - name: Create / update GitHub Release (tags v* or manual dispatch)
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
@@ -127,8 +137,7 @@ jobs:
           body_path: ${{ env.RELEASE_BODY_PATH }}
           files: |
             cli-dist/forza-sync.exe
-            web/dist/ForzaGallerySync-Setup-*.exe
-            web/dist/ForzaGallerySync-*.msi
+            web/dist/ForzaGallerySync-*-win-x64.zip
           draft: false
           prerelease: false
 
