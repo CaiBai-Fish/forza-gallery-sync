@@ -8,7 +8,8 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
-    <PublishProfile>win-$(Platform).pubxml</PublishProfile>
+    <!-- 不设置 PublishProfile：仓库没有 win-<Platform>.pubxml 配置文件，
+         声明它只会产生 NETSDK1198 警告；发布参数由 web 下的打包脚本显式传入。 -->
     <UseWinUI>true</UseWinUI>
     <EnableMsixTooling>true</EnableMsixTooling>
     <Nullable>enable</Nullable>
