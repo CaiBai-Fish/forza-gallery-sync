@@ -4,172 +4,350 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:vm="using:ForzaGallerySync.ViewModels">
 
-    <ScrollViewer VerticalScrollBarVisibility="Auto">
-        <StackPanel Padding="20" Spacing="16">
+    <Grid x:Name="RootGrid">
+        <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <StackPanel Spacing="20" Margin="{StaticResource PageMargin}"
+                        MaxWidth="1400" HorizontalAlignment="Stretch">
 
-            <!-- 加载指示 -->
-            <ProgressRing Width="40" Height="40" HorizontalAlignment="Center" Margin="0,24,0,0"
+            <!-- ================= 页头 ================= -->
+            <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
+                <StackPanel>
+                    <TextBlock Text="总览" Style="{StaticResource PageTitleTextStyle}" />
+                    <TextBlock Style="{StaticResource PageSubtitleTextStyle}"
+                               Text="已同步照片的统计概览；同步参数与账号配置在「同步」「设置」页。" />
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
+                    <Button Click="OnRefresh" Style="{StaticResource IconTextButtonStyle}"
+                            ToolTipService.ToolTip="重新加载统计">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                            <TextBlock Text="刷新" />
+                        </StackPanel>
+                    </Button>
+                    <Button Click="OnGoSync" Style="{StaticResource PrimaryActionButtonStyle}">
+                        <StackPanel Orientation="Horizontal" Spacing="8">
+                            <FontIcon Glyph="&#xE895;" FontSize="14" />
+                            <TextBlock Text="前往同步" />
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+            </Grid>
+
+            <!-- ================= 加载 / 错误 / 账号提醒 ================= -->
+            <ProgressRing Width="32" Height="32" HorizontalAlignment="Left"
                           IsActive="{x:Bind VM.Loading, Mode=OneWay}"
                           Visibility="{x:Bind VM.Loading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-            <!-- 错误提示 -->
-            <TextBlock Text="{x:Bind VM.Error, Mode=OneWay}"
-                       Foreground="{ThemeResource DangerBrush}"
-                       HorizontalAlignment="Center"
-                       Visibility="{x:Bind VM.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+            <InfoBar IsOpen="{x:Bind VM.HasError, Mode=OneWay}"
+                     Severity="Error"
+                     IsClosable="False"
+                     Title="加载统计失败"
+                     Message="{x:Bind VM.Error, Mode=OneWay}" />
 
-            <!-- 统计卡片 -->
-            <ItemsControl ItemsSource="{x:Bind VM.Stats, Mode=OneWay}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <ItemsWrapGrid Orientation="Horizontal" MaximumRowsOrColumns="4" ItemWidth="250" />
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
+            <InfoBar IsOpen="{x:Bind VM.TokenNeedsAttention, Mode=OneWay}"
+                     Severity="Warning"
+                     IsClosable="False"
+                     Title="账号尚未就绪"
+                     Message="{x:Bind VM.TokenSummary, Mode=OneWay}">
+                <InfoBar.ActionButton>
+                    <Button Content="前往设置" Click="OnGoSettings" />
+                </InfoBar.ActionButton>
+            </InfoBar>
+
+            <!-- ================= 主视觉：照片总量 ================= -->
+            <Border Style="{StaticResource CardBorderStyle}" Padding="24">
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
+                    <StackPanel Spacing="4">
+                        <TextBlock Text="照片总量" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock Text="{x:Bind VM.HeroTotal, Mode=OneWay}"
+                                   FontSize="44" FontWeight="Bold" LineHeight="52" />
+                        <TextBlock Text="{x:Bind VM.HeroCaption, Mode=OneWay}"
+                                   Style="{StaticResource CaptionTextStyle}" />
+                    </StackPanel>
+
+                    <StackPanel Grid.Column="1" VerticalAlignment="Center"
+                                Orientation="Horizontal" Spacing="24">
+                        <StackPanel Spacing="4" MinWidth="140">
+                            <TextBlock Text="最近同步" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock Text="{x:Bind VM.LastSyncText, Mode=OneWay}"
+                                       FontSize="16" FontWeight="SemiBold" />
+                        </StackPanel>
+                        <Button Click="OnGoGallery" Style="{StaticResource IconTextButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8B9;" FontSize="14" />
+                                <TextBlock Text="浏览照片库" />
+                            </StackPanel>
+                        </Button>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- ================= 统计卡片（按可用宽度自适应列数） ================= -->
+            <ItemsRepeater ItemsSource="{x:Bind VM.Stats, Mode=OneWay}">
+                <ItemsRepeater.Layout>
+                    <UniformGridLayout MinItemWidth="248" MinItemHeight="104"
+                                       MinColumnSpacing="16" MinRowSpacing="16"
+                                       ItemsStretch="Fill" />
+                </ItemsRepeater.Layout>
+                <ItemsRepeater.ItemTemplate>
                     <DataTemplate x:DataType="vm:StatCardViewModel">
-                        <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                                BorderThickness="1" CornerRadius="10" Padding="16" Margin="0,0,12,12">
+                        <Border Style="{StaticResource CardBorderStyle}">
                             <Grid ColumnDefinitions="Auto,*" ColumnSpacing="14">
-                                <Border Width="52" Height="52" CornerRadius="10" Background="#2A2EA8FF">
-                                    <TextBlock Text="{x:Bind Icon}" FontSize="24"
-                                               HorizontalAlignment="Center" VerticalAlignment="Center" />
+                                <Border Style="{StaticResource StatIconBoxStyle}">
+                                    <FontIcon Glyph="{x:Bind Glyph}"
+                                              FontSize="20"
+                                              HorizontalAlignment="Center"
+                                              VerticalAlignment="Center"
+                                              Foreground="{x:Bind AccentKey, Converter={StaticResource ResourceBrush}}" />
                                 </Border>
+
                                 <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
-                                    <TextBlock Text="{x:Bind Value}" FontSize="22" FontWeight="Bold"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Text="{x:Bind Label}" FontSize="12"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                                    <TextBlock Text="{x:Bind Value}" Style="{StaticResource StatValueTextStyle}" />
+                                    <TextBlock Text="{x:Bind Label}" Style="{StaticResource CaptionTextStyle}" />
+                                    <TextBlock Text="{x:Bind Caption}" Style="{StaticResource FootnoteTextStyle}" />
                                 </StackPanel>
                             </Grid>
                         </Border>
                     </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+                </ItemsRepeater.ItemTemplate>
+            </ItemsRepeater>
 
-            <!-- 两列布局 -->
-            <Grid ColumnDefinitions="1.4*,1*" ColumnSpacing="16">
-                <!-- 左列：按游戏统计 + 最近同步 -->
-                <StackPanel Grid.Column="0" Spacing="16">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="16">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="按游戏统计" FontWeight="SemiBold" FontSize="14" />
-                            <ItemsControl ItemsSource="{x:Bind VM.GameBars, Mode=OneWay}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:GameBarViewModel">
-                                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10" Margin="0,6">
-                                            <TextBlock Text="{x:Bind Name}" FontWeight="SemiBold" FontSize="13"
-                                                       Width="150" TextTrimming="CharacterEllipsis" />
-                                            <ProgressBar Grid.Column="1" Minimum="0" Maximum="100"
-                                                         Value="{x:Bind Percent}" VerticalAlignment="Center"
-                                                         Foreground="{ThemeResource AccentBrush}" />
-                                            <TextBlock Grid.Column="2" Text="{x:Bind Count}" FontSize="13"
-                                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="暂无记录" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       FontSize="13"
-                                       Visibility="{x:Bind VM.GameBars.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}, ConverterParameter=invert}" />
-                        </StackPanel>
-                    </Border>
+            <!-- ================= 分布 + 最近同步 ================= -->
+            <Grid ColumnDefinitions="1.3*,1*" ColumnSpacing="16">
 
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="16">
-                        <StackPanel Spacing="8">
-                            <TextBlock Text="最近同步" FontWeight="SemiBold" FontSize="14" />
-                            <ItemsControl ItemsSource="{x:Bind VM.SyncRows, Mode=OneWay}">
-                                <ItemsControl.ItemTemplate>
-                                    <DataTemplate x:DataType="vm:SyncRowViewModel">
-                                        <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Padding="0,8">
-                                            <Border CornerRadius="4" Padding="8,3"
-                                                    Background="{ThemeResource AccentBrush}">
-                                                <TextBlock Text="{x:Bind GameName}" FontSize="11" Foreground="White" />
-                                            </Border>
-                                            <StackPanel Grid.Column="1" Spacing="2">
-                                                <TextBlock Text="{x:Bind LastSyncAt}" FontSize="13" />
-                                                <TextBlock Text="{x:Bind Sub}" FontSize="12"
-                                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                            </StackPanel>
-                                        </Grid>
-                                    </DataTemplate>
-                                </ItemsControl.ItemTemplate>
-                            </ItemsControl>
-                            <TextBlock Text="暂无同步记录" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                       FontSize="13"
-                                       Visibility="{x:Bind VM.SyncRows.Count, Mode=OneWay, Converter={StaticResource CountToVisibility}, ConverterParameter=invert}" />
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                <!-- 按游戏分布 -->
+                <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="按游戏分布" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
 
-                <!-- 右列：Token 状态 + 快速操作 + 配置概览 -->
-                <StackPanel Grid.Column="1" Spacing="16">
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="16">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="Token 状态" FontWeight="SemiBold" FontSize="14" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Border CornerRadius="4" Padding="8,3" Background="#1F3DDC97"
-                                        Visibility="{x:Bind VM.TokenStatusGood, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                                    <TextBlock Text="有效" FontSize="11" Foreground="{ThemeResource SuccessBrush}" />
-                                </Border>
-                                <Border CornerRadius="4" Padding="8,3" Background="#1FFF5C5C"
-                                        Visibility="{x:Bind VM.TokenStatusGood, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                                    <TextBlock Text="{x:Bind VM.TokenStatusText, Mode=OneWay}" FontSize="11" Foreground="{ThemeResource DangerBrush}" />
-                                </Border>
-                                <TextBlock Text="{x:Bind VM.AccessTokenText, Mode=OneWay}" FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Text="{x:Bind VM.RefreshTokenText, Mode=OneWay}" FontSize="11"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            </StackPanel>
-                            <Grid ColumnDefinitions="*,Auto" Margin="0,4">
-                                <TextBlock Text="有效期" FontSize="12"
-                                           Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind VM.ExpiresInText, Mode=OneWay}" FontSize="13"
-                                           FontWeight="SemiBold" />
-                            </Grid>
-                            <Button Content="前往设置" Click="OnGoSettings"
-                                    HorizontalAlignment="Stretch" />
-                        </StackPanel>
-                    </Border>
+                        <ItemsControl ItemsSource="{x:Bind VM.GameBars, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:GameBarViewModel">
+                                    <Grid ColumnDefinitions="190,*" ColumnSpacing="12" Margin="0,7">
+                                        <StackPanel VerticalAlignment="Center" Spacing="1">
+                                            <TextBlock Text="{x:Bind Name}" FontSize="13" FontWeight="SemiBold"
+                                                       TextTrimming="CharacterEllipsis" />
+                                            <TextBlock Text="{x:Bind Code}" Style="{StaticResource FootnoteTextStyle}" />
+                                        </StackPanel>
+                                        <StackPanel Grid.Column="1" Spacing="4" VerticalAlignment="Center">
+                                            <ProgressBar Minimum="0" Maximum="100" Value="{x:Bind Percent}"
+                                                         Height="6"
+                                                         Foreground="{ThemeResource AppBrandBrush}" />
+                                            <TextBlock Text="{x:Bind CountText}" Style="{StaticResource FootnoteTextStyle}"
+                                                       HorizontalAlignment="Right" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
 
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="16">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="快速操作" FontWeight="SemiBold" FontSize="14" />
-                            <StackPanel Orientation="Horizontal" Spacing="8">
-                                <Button Content="🔄 开始同步" Click="OnGoSync" />
-                                <Button Content="🖼️ 浏览照片库" Click="OnGoGallery" />
-                                <Button Content="↻ 刷新" Click="OnRefresh" />
-                            </StackPanel>
-                        </StackPanel>
-                    </Border>
+                        <TextBlock Text="暂无照片记录，先执行一次同步" Style="{StaticResource CaptionTextStyle}"
+                                   HorizontalAlignment="Center" Margin="0,16"
+                                   Visibility="{x:Bind VM.HasGameBars, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                    </StackPanel>
+                </Border>
 
-                    <Border Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-                            BorderThickness="1" CornerRadius="10" Padding="16">
-                        <StackPanel Spacing="10">
-                            <TextBlock Text="配置概览" FontWeight="SemiBold" FontSize="14" />
-                            <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="6" ColumnSpacing="12">
-                                <TextBlock Text="下载目录" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Grid.Column="1" Text="{x:Bind VM.DownloadDir, Mode=OneWay}" FontSize="12"
-                                           TextWrapping="Wrap" ToolTipService.ToolTip="{x:Bind VM.DownloadDir, Mode=OneWay}" />
-                                <TextBlock Grid.Row="1" Text="数据库" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Grid.Row="1" Grid.Column="1" Text="{x:Bind VM.DatabasePath, Mode=OneWay}" FontSize="12"
-                                           TextWrapping="Wrap" />
-                                <TextBlock Grid.Row="2" Text="并发 / 分页" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                                <TextBlock Grid.Row="2" Grid.Column="1" Text="{x:Bind VM.ConcurrencyText, Mode=OneWay}" FontSize="12" />
-                            </Grid>
-                        </StackPanel>
-                    </Border>
-                </StackPanel>
+                <!-- 最近同步记录 -->
+                <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
+                    <StackPanel>
+                        <TextBlock Text="最近同步" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
+
+                        <ItemsControl ItemsSource="{x:Bind VM.SyncRows, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:SyncRowViewModel">
+                                    <Grid ColumnDefinitions="Auto,*" ColumnSpacing="12" Padding="0,7">
+                                        <Border CornerRadius="{StaticResource PillCornerRadius}"
+                                                Padding="8,3"
+                                                Background="{ThemeResource AccentFillColorTertiaryBrush}"
+                                                VerticalAlignment="Top">
+                                            <TextBlock Text="{x:Bind GameName}" FontSize="11" />
+                                        </Border>
+                                        <StackPanel Grid.Column="1" Spacing="2">
+                                            <TextBlock Text="{x:Bind LastSyncAt}" FontSize="13" />
+                                            <TextBlock Text="{x:Bind Sub}" Style="{StaticResource CaptionTextStyle}" />
+                                        </StackPanel>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <TextBlock Text="还没有同步记录" Style="{StaticResource CaptionTextStyle}"
+                                   HorizontalAlignment="Center" Margin="0,16"
+                                   Visibility="{x:Bind VM.HasSyncRows, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                    </StackPanel>
+                </Border>
             </Grid>
+
+            <!-- ================= 最新照片 ================= -->
+            <Border Style="{StaticResource CardBorderStyle}">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,Auto">
+                        <TextBlock Text="最新照片" Style="{StaticResource SectionTitleTextStyle}"
+                                   VerticalAlignment="Center" />
+                        <HyperlinkButton Grid.Column="1" Content="查看全部" Click="OnGoGallery" />
+                    </Grid>
+
+                    <ItemsControl Margin="0,8,0,0" ItemsSource="{x:Bind VM.RecentPhotos, Mode=OneWay}"
+                                  Visibility="{x:Bind VM.HasRecentPhotos, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                                <ItemsWrapGrid Orientation="Horizontal" ItemWidth="168" ItemHeight="120" />
+                            </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:PhotoItemViewModel">
+                                <Button Padding="0" Margin="0,0,10,10"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        CornerRadius="{StaticResource CardCornerRadius}"
+                                        AutomationProperties.AutomationId="RecentPhotoThumb"
+                                        AutomationProperties.Name="{x:Bind Title, FallbackValue='照片'}"
+                                        Click="OnRecentPhotoClick"
+                                        ToolTipService.ToolTip="{x:Bind Title}">
+                                    <!-- 右键菜单：与照片库缩略图保持一致 -->
+                                    <Button.ContextFlyout>
+                                        <MenuFlyout>
+                                            <MenuFlyoutItem Text="复制图片" Click="OnMenuCopyImage">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8C8;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutSeparator />
+                                            <MenuFlyoutItem Text="用默认应用打开" Click="OnMenuOpenWithDefault">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8E5;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                            <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuRevealInExplorer">
+                                                <MenuFlyoutItem.Icon>
+                                                    <FontIcon Glyph="&#xE8B7;" />
+                                                </MenuFlyoutItem.Icon>
+                                            </MenuFlyoutItem>
+                                        </MenuFlyout>
+                                    </Button.ContextFlyout>
+                                    <Grid Width="158" Height="110"
+                                          Background="{ThemeResource AppImagePlaceholderBrush}"
+                                          CornerRadius="{StaticResource CardCornerRadius}">
+                                        <Image Source="{Binding Thumbnail, Mode=OneWay}" Stretch="UniformToFill" />
+                                        <Border VerticalAlignment="Bottom" Height="42"
+                                                CornerRadius="0,0,8,8"
+                                                Background="{StaticResource AppThumbOverlayBrush}">
+                                            <StackPanel VerticalAlignment="Bottom" Padding="9,5" Spacing="1">
+                                                <TextBlock Text="{x:Bind GameName}" FontSize="10"
+                                                           Foreground="#B3FFFFFF" />
+                                                <TextBlock Text="{x:Bind Title, FallbackValue='无标题'}"
+                                                           FontSize="11" Foreground="White"
+                                                           TextTrimming="CharacterEllipsis" MaxLines="1" />
+                                            </StackPanel>
+                                        </Border>
+                                    </Grid>
+                                </Button>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <TextBlock Text="同步后这里会显示最新的照片" Style="{StaticResource CaptionTextStyle}"
+                               Margin="0,8,0,0"
+                               Visibility="{x:Bind VM.HasRecentPhotos, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
+                </StackPanel>
+            </Border>
         </StackPanel>
     </ScrollViewer>
+
+        <!-- ================= 照片预览层 =================
+             用覆盖层而不是 ContentDialog，是为了让缩略图与大图之间能做
+             共享元素（Hero）转场：ContentDialog 由系统弹出动画接管时序，
+             无法从缩略图位置精确起帧。
+             ================================================ -->
+        <Grid x:Name="PreviewLayer" Visibility="Collapsed" IsHitTestVisible="False">
+            <!-- 背景遮罩：点击空白处收起 -->
+            <Border x:Name="PreviewScrim" Background="#99000000" Tapped="OnPreviewScrimTapped" />
+
+            <Border x:Name="PreviewCard"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CardCornerRadius}"
+                    Margin="28,24"
+                    Padding="0">
+                <Grid RowDefinitions="Auto,*,Auto">
+                    <!-- 标题栏（随 Hero 动画一起淡入） -->
+                    <Grid Grid.Row="0" x:Name="PreviewHeader" Padding="16,10" ColumnDefinitions="*,Auto">
+                        <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                            <TextBlock x:Name="PreviewTitle" FontSize="15" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis" />
+                            <Border CornerRadius="{StaticResource PillCornerRadius}" Padding="8,2"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}"
+                                    VerticalAlignment="Center">
+                                <TextBlock x:Name="PreviewGame" FontSize="11" />
+                            </Border>
+                        </StackPanel>
+                        <Button Grid.Column="1" Style="{StaticResource ToolbarButtonStyle}"
+                                Click="OnClosePreview" ToolTipService.ToolTip="关闭预览">
+                            <FontIcon Glyph="&#xE711;" FontSize="14" />
+                        </Button>
+                    </Grid>
+
+                    <Border Grid.Row="0" VerticalAlignment="Bottom" Height="1"
+                            Background="{ThemeResource DividerStrokeColorDefaultBrush}" />
+
+                    <!-- 大图 -->
+                    <Grid Grid.Row="1" Background="{ThemeResource AppImagePlaceholderBrush}">
+                        <Image x:Name="PreviewImage" Stretch="Uniform" Margin="12"
+                               Opacity="0">
+                            <!-- 大图的右键菜单：与缩略图一致 -->
+                            <Image.ContextFlyout>
+                                <MenuFlyout>
+                                    <MenuFlyoutItem Text="复制图片" Click="OnPreviewCopyImage">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE8C8;" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutSeparator />
+                                    <MenuFlyoutItem Text="用默认应用打开" Click="OnPreviewOpenWithDefault">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE8E5;" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                    <MenuFlyoutItem Text="打开所在文件夹" Click="OnPreviewOpenFolder">
+                                        <MenuFlyoutItem.Icon>
+                                            <FontIcon Glyph="&#xE8B7;" />
+                                        </MenuFlyoutItem.Icon>
+                                    </MenuFlyoutItem>
+                                </MenuFlyout>
+                            </Image.ContextFlyout>
+                        </Image>
+                    </Grid>
+
+                    <!-- 元信息与操作 -->
+                    <Grid Grid.Row="2" x:Name="PreviewFooter" Padding="16,12" ColumnDefinitions="*,Auto">
+                        <StackPanel Spacing="3">
+                            <TextBlock x:Name="PreviewMeta" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Name="PreviewPath" Style="{StaticResource FootnoteTextStyle}"
+                                       TextTrimming="CharacterEllipsis" MaxLines="1" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8">
+                            <Button Click="OnPreviewCopyImage" Style="{StaticResource IconTextButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                    <TextBlock Text="复制图片" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OnPreviewOpenFile" Style="{StaticResource IconTextButtonStyle}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE8E5;" FontSize="14" />
+                                    <TextBlock Text="用默认应用打开" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- 共享元素（Hero）转场动画层：RenderTransform 由 HeroTransition 运行时挂上 -->
+        <Image x:Name="HeroImage" Stretch="Uniform" Visibility="Collapsed"
+               IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" />
+    </Grid>
 </Page>

@@ -6,79 +6,139 @@
 
     <Grid x:Name="RootGrid" Padding="16" RowSpacing="12" RowDefinitions="Auto,*,Auto">
 
-        <!-- 工具栏 -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
-            <Button x:Name="BackBtn" MinWidth="40" MinHeight="32" Padding="8,0" Visibility="Collapsed"
-                    ToolTipService.ToolTip="返回图库" Click="OnDetailClose">
-                <FontIcon Glyph="&#xE72B;" FontSize="16" />
+        <!-- ================= 工具栏 ================= -->
+        <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
+            <!-- 详情模式下出现的返回按钮 -->
+            <Button x:Name="BackBtn" Visibility="Collapsed"
+                    Style="{StaticResource ToolbarButtonStyle}"
+                    ToolTipService.ToolTip="返回照片库"
+                    Click="OnDetailClose">
+                <FontIcon Glyph="&#xE72B;" FontSize="14" />
             </Button>
-            <AutoSuggestBox x:Name="SearchBox" Width="240" PlaceholderText="搜索标题 / ID / 游戏"
-                            QueryIcon="Find" TextChanged="OnSearchTextChanged" QuerySubmitted="OnSearchSubmitted" />
-            <ComboBox x:Name="GameCombo" PlaceholderText="全部游戏" MinWidth="170"
-                      ItemsSource="{x:Bind VM.GamesList, Mode=OneWay}" SelectionChanged="OnGameChanged" />
-            <ComboBox x:Name="MonthCombo" PlaceholderText="全部月份" MinWidth="150"
-                      ItemsSource="{x:Bind VM.Months, Mode=OneWay}" SelectionChanged="OnMonthChanged" />
-            <Button Content="↻" ToolTipService.ToolTip="刷新" Click="OnRefresh" />
-            <Button Content="📂 打开目录" IsEnabled="{x:Bind VM.HasDownloadDir, Mode=OneWay}"
-                    Click="OnOpenDownloadDir" />
-            <TextBlock Text="{x:Bind VM.TotalText, Mode=OneWay}" VerticalAlignment="Center"
-                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-        </StackPanel>
 
-        <!-- 网格 -->
-        <GridView Grid.Row="1" x:Name="PhotoGrid" ItemsSource="{x:Bind VM.Photos, Mode=OneWay}"
-                  SelectionMode="None" IsItemClickEnabled="True" ItemClick="OnPhotoClick">
+            <!-- 搜索 -->
+            <AutoSuggestBox x:Name="SearchBox" Grid.Column="1" Width="260"
+                            PlaceholderText="搜索标题 / ID / 游戏"
+                            QueryIcon="Find"
+                            TextChanged="OnSearchTextChanged"
+                            QuerySubmitted="OnSearchSubmitted" />
+
+            <!-- 筛选与操作 -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" HorizontalAlignment="Right">
+                <TextBlock Text="{x:Bind VM.TotalText, Mode=OneWay}"
+                           VerticalAlignment="Center"
+                           Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                           FontSize="12" />
+                <ComboBox x:Name="GameCombo" MinWidth="172"
+                          PlaceholderText="全部游戏"
+                          ItemsSource="{x:Bind VM.GamesList, Mode=OneWay}"
+                          SelectionChanged="OnGameChanged" />
+                <ComboBox x:Name="MonthCombo" MinWidth="150"
+                          PlaceholderText="全部月份"
+                          ItemsSource="{x:Bind VM.Months, Mode=OneWay}"
+                          SelectionChanged="OnMonthChanged" />
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        ToolTipService.ToolTip="刷新" Click="OnRefresh">
+                    <FontIcon Glyph="&#xE72C;" FontSize="14" />
+                </Button>
+                <Button Style="{StaticResource ToolbarButtonStyle}"
+                        IsEnabled="{x:Bind VM.HasDownloadDir, Mode=OneWay}"
+                        ToolTipService.ToolTip="在资源管理器中打开下载目录"
+                        Click="OnOpenDownloadDir">
+                    <FontIcon Glyph="&#xE8B7;" FontSize="14" />
+                </Button>
+            </StackPanel>
+        </Grid>
+
+        <!-- ================= 照片网格 ================= -->
+        <GridView Grid.Row="1" x:Name="PhotoGrid"
+                  Style="{StaticResource PhotoGridStyle}"
+                  ItemsSource="{x:Bind VM.Photos, Mode=OneWay}"
+                  ItemContainerStyle="{StaticResource PhotoGridItemStyle}"
+                  ItemClick="OnPhotoClick"
+                  SizeChanged="OnGridSizeChanged">
             <GridView.ItemsPanel>
                 <ItemsPanelTemplate>
-                    <ItemsWrapGrid Orientation="Horizontal" />
+                    <ItemsWrapGrid x:Name="PhotoWrapGrid" Orientation="Horizontal" />
                 </ItemsPanelTemplate>
             </GridView.ItemsPanel>
-            <GridView.ItemContainerStyle>
-                <Style TargetType="GridViewItem">
-                    <Setter Property="Margin" Value="4" />
-                    <Setter Property="CornerRadius" Value="8" />
-                </Style>
-            </GridView.ItemContainerStyle>
             <GridView.ItemTemplate>
                 <DataTemplate x:DataType="vm:PhotoItemViewModel">
-                    <Border Width="176" Height="110" CornerRadius="8" Background="#FF0D1224">
-                        <Grid>
-                            <Image Source="{Binding Thumbnail, Mode=OneWay}" Stretch="UniformToFill" />
-                            <Border VerticalAlignment="Bottom" Background="#C0000000" CornerRadius="0,0,8,8" Padding="8,5">
-                                <StackPanel Spacing="2">
-                                    <TextBlock Text="{x:Bind GameName}" FontSize="10" Foreground="#8FC3FF" />
-                                    <TextBlock Text="{x:Bind Title, FallbackValue='无标题'}" FontSize="11" Foreground="White"
-                                               TextTrimming="CharacterEllipsis" MaxLines="1" />
-                                </StackPanel>
-                            </Border>
-                            <Grid.ContextFlyout>
-                                <MenuFlyout>
-                                    <MenuFlyoutItem Text="打开文件" Click="OnMenuOpenFile" />
-                                    <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuOpenDir" />
-                                    <MenuFlyoutItem Text="查看详情" Click="OnMenuViewDetail" />
-                                </MenuFlyout>
-                            </Grid.ContextFlyout>
-                        </Grid>
-                    </Border>
+                    <Grid Background="{ThemeResource AppImagePlaceholderBrush}"
+                          CornerRadius="{StaticResource CardCornerRadius}">
+                        <Image Source="{Binding Thumbnail, Mode=OneWay}" Stretch="UniformToFill" />
+                        <Border VerticalAlignment="Bottom"
+                                Height="46"
+                                CornerRadius="0,0,8,8"
+                                Background="{StaticResource AppThumbOverlayBrush}">
+                            <StackPanel VerticalAlignment="Bottom" Padding="10,6" Spacing="1">
+                                <TextBlock Text="{x:Bind GameName}" FontSize="10" Foreground="#B3FFFFFF" />
+                                <TextBlock Text="{x:Bind Title, FallbackValue='无标题'}" FontSize="12"
+                                           Foreground="White" TextTrimming="CharacterEllipsis" MaxLines="1" />
+                            </StackPanel>
+                        </Border>
+
+                        <Grid.ContextFlyout>
+                            <MenuFlyout>
+                                <MenuFlyoutItem Text="查看详情" Click="OnMenuViewDetail">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8A7;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutSeparator />
+                                <MenuFlyoutItem Text="复制图片" Click="OnMenuCopyImage">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8C8;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="用默认应用打开" Click="OnMenuOpenWithDefault">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8E5;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                                <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuOpenDir">
+                                    <MenuFlyoutItem.Icon>
+                                        <FontIcon Glyph="&#xE8B7;" />
+                                    </MenuFlyoutItem.Icon>
+                                </MenuFlyoutItem>
+                            </MenuFlyout>
+                        </Grid.ContextFlyout>
+                    </Grid>
                 </DataTemplate>
             </GridView.ItemTemplate>
         </GridView>
 
-        <!-- 加载 / 错误 / 空状态 -->
+        <!-- ================= 加载 / 错误 / 空状态 ================= -->
         <Grid x:Name="StatusOverlay" Grid.Row="1" IsHitTestVisible="False">
-            <ProgressRing Width="36" Height="36" IsActive="{x:Bind VM.Loading, Mode=OneWay}"
+            <ProgressRing Width="32" Height="32"
+                          IsActive="{x:Bind VM.Loading, Mode=OneWay}"
                           Visibility="{x:Bind VM.Loading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Text="{x:Bind VM.Error, Mode=OneWay}" Foreground="{ThemeResource DangerBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{x:Bind VM.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-            <TextBlock Text="没有找到照片" Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                       HorizontalAlignment="Center" VerticalAlignment="Center"
-                       Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="8" MaxWidth="520">
+                <TextBlock Text="{x:Bind VM.Error, Mode=OneWay}"
+                           Foreground="{ThemeResource AppDangerBrush}"
+                           TextWrapping="Wrap" TextAlignment="Center"
+                           Visibility="{x:Bind VM.HasError, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                <FontIcon Glyph="&#xEB9F;" FontSize="32"
+                          Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                          Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="没有找到照片" FontSize="15" FontWeight="SemiBold" TextAlignment="Center"
+                           Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                <TextBlock Text="换个筛选条件，或先前往「同步」页拉取照片。"
+                           Style="{StaticResource CaptionTextStyle}" TextAlignment="Center"
+                           Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+            </StackPanel>
         </Grid>
 
-        <!-- 分页 -->
+        <!-- ================= 分页 ================= -->
         <StackPanel x:Name="Pager" Grid.Row="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Button Content="‹" MinWidth="40" IsEnabled="{x:Bind VM.HasPrev, Mode=OneWay}" Click="OnPrevPage" />
+            <Button Style="{StaticResource PagerButtonStyle}"
+                    IsEnabled="{x:Bind VM.HasPrev, Mode=OneWay}"
+                    ToolTipService.ToolTip="上一页" Click="OnPrevPage">
+                <FontIcon Glyph="&#xE76B;" FontSize="12" />
+            </Button>
+
             <ItemsControl ItemsSource="{x:Bind VM.PageButtons, Mode=OneWay}">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
@@ -87,76 +147,135 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:PageButtonViewModel">
-                        <Button Content="{x:Bind Label}" Tag="{x:Bind Page}" MinWidth="40"
+                        <Button Content="{x:Bind Label}" Tag="{x:Bind Page}"
+                                Style="{StaticResource PagerButtonStyle}"
+                                IsEnabled="{x:Bind IsCurrent, Converter={StaticResource InvertBool}}"
                                 FontWeight="{x:Bind IsCurrent, Converter={StaticResource BoolToFontWeight}}"
                                 Click="OnPageClick" />
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
-            <Button Content="›" MinWidth="40" IsEnabled="{x:Bind VM.HasNext, Mode=OneWay}" Click="OnNextPage" />
+
+            <Button Style="{StaticResource PagerButtonStyle}"
+                    IsEnabled="{x:Bind VM.HasNext, Mode=OneWay}"
+                    ToolTipService.ToolTip="下一页" Click="OnNextPage">
+                <FontIcon Glyph="&#xE76C;" FontSize="12" />
+            </Button>
         </StackPanel>
 
-        <!-- 照片详情视图（图片与详情并排同级；收起/展开时详情列宽动画，图片自适应窗口） -->
+        <!-- ================= 照片详情（大图 + 信息栏并排） ================= -->
         <Grid x:Name="DetailView" Grid.Row="1" Visibility="Collapsed">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition Width="*" />
-                <ColumnDefinition x:Name="DetailColumn" Width="340" />
+                <ColumnDefinition x:Name="DetailColumn" Width="360" />
             </Grid.ColumnDefinitions>
 
-            <!-- 图片列 -->
-            <Grid Grid.Column="0" x:Name="ImageArea">
-                <Image x:Name="DetailImage" Stretch="Uniform" />
+            <!-- 大图区 -->
+            <Grid Grid.Column="0" x:Name="ImageArea"
+                  Background="{ThemeResource AppImagePlaceholderBrush}"
+                  CornerRadius="{StaticResource CardCornerRadius}">
+                <Image x:Name="DetailImage" Stretch="Uniform" Margin="8">
+                    <!-- 详情大图的右键菜单：与缩略图一致 -->
+                    <Image.ContextFlyout>
+                        <MenuFlyout>
+                            <MenuFlyoutItem Text="复制图片" Click="OnDetailCopyImage">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8C8;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutSeparator />
+                            <MenuFlyoutItem Text="用默认应用打开" Click="OnDetailOpenFile">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8E5;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                            <MenuFlyoutItem Text="打开所在文件夹" Click="OnDetailRevealInExplorer">
+                                <MenuFlyoutItem.Icon>
+                                    <FontIcon Glyph="&#xE8B7;" />
+                                </MenuFlyoutItem.Icon>
+                            </MenuFlyoutItem>
+                        </MenuFlyout>
+                    </Image.ContextFlyout>
+                </Image>
 
-                <!-- 显示 / 收起信息按钮（图片右侧，始终可见） -->
-                <Button x:Name="ToggleSidebarBtn" HorizontalAlignment="Right" VerticalAlignment="Center"
-                        Width="34" Height="52" Margin="0,0,8,0" Padding="0" Click="OnToggleSidebar"
-                        Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-                        BorderBrush="#33FFFFFF" BorderThickness="1">
-                    <TextBlock x:Name="ToggleSidebarIcon" Text="&gt;" FontSize="14" FontWeight="Bold" />
+                <!-- 信息栏展开 / 收起（贴图片右缘，常驻可见） -->
+                <Button x:Name="ToggleSidebarBtn"
+                        HorizontalAlignment="Right" VerticalAlignment="Center"
+                        Width="32" Height="56" Margin="0,0,10,0" Padding="0"
+                        Click="OnToggleSidebar"
+                        ToolTipService.ToolTip="显示 / 收起照片信息">
+                    <FontIcon x:Name="ToggleSidebarIcon" Glyph="&#xE76C;" FontSize="12" />
                 </Button>
             </Grid>
 
-            <!-- 详情列（与图片并排同级，无圆角、无背景） -->
-            <Border x:Name="DetailSidebar" Grid.Column="1" Margin="16,0,0,0"
-                    BorderBrush="#33FFFFFF" BorderThickness="1" Padding="20">
+            <!-- 信息栏 -->
+            <Border x:Name="DetailSidebar" Grid.Column="1" Margin="16,0,0,0" RenderTransformOrigin="0.5,0.5"
+                    Opacity="0"
+                    Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                    BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                    BorderThickness="1"
+                    CornerRadius="{StaticResource CardCornerRadius}"
+                    Padding="20">
                 <ScrollViewer VerticalScrollBarVisibility="Auto">
-                    <StackPanel Spacing="10">
+                    <StackPanel Spacing="14">
                         <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Border CornerRadius="4" Padding="8,3" Background="{ThemeResource AccentBrush}">
-                                <TextBlock x:Name="DetailGame" FontSize="12" Foreground="White" />
+                            <Border CornerRadius="{StaticResource PillCornerRadius}"
+                                    Padding="8,3" VerticalAlignment="Top"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                <TextBlock x:Name="DetailGame" FontSize="11" />
                             </Border>
                             <TextBlock x:Name="DetailTitle" FontSize="18" FontWeight="SemiBold"
-                                       TextWrapping="Wrap" VerticalAlignment="Center" />
+                                       TextWrapping="Wrap" />
                         </StackPanel>
-                        <Border Height="1" Background="#33FFFFFF" />
-                        <StackPanel Spacing="6">
-                            <TextBlock Text="照片 ID" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="DetailPhotoId" FontSize="12" TextWrapping="Wrap" />
-                            <TextBlock Text="上传时间" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="DetailSubmitted" FontSize="12" />
-                            <TextBlock Text="下载时间" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="DetailDownloaded" FontSize="12" />
-                            <TextBlock Text="本地路径" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="DetailPath" FontSize="12" TextWrapping="Wrap" />
-                            <TextBlock Text="描述" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                            <TextBlock x:Name="DetailDesc" FontSize="12" TextWrapping="Wrap" />
+
+                        <Border Style="{StaticResource CardDividerStyle}" />
+
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="上传时间" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Name="DetailSubmitted" FontSize="13" />
+
+                            <TextBlock Text="下载时间" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Name="DetailDownloaded" FontSize="13" />
+
+                            <TextBlock Text="照片 ID" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Name="DetailPhotoId" FontSize="12" TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                            <TextBlock Text="本地路径" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Name="DetailPath" FontSize="12" TextWrapping="Wrap"
+                                       IsTextSelectionEnabled="True"
+                                       Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+
+                            <TextBlock Text="描述" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Name="DetailDesc" FontSize="13" TextWrapping="Wrap" />
                         </StackPanel>
-                        <Border Height="1" Background="#33FFFFFF" />
-                        <Button Content="📂 打开本地文件" HorizontalAlignment="Stretch" Click="OnDetailOpenFile" />
+
+                        <Border Style="{StaticResource CardDividerStyle}" />
+
+                        <Button HorizontalAlignment="Stretch" Click="OnDetailCopyImage"
+                                Style="{StaticResource IconTextButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8C8;" FontSize="14" />
+                                <TextBlock Text="复制图片" />
+                            </StackPanel>
+                        </Button>
+
+                        <Button HorizontalAlignment="Stretch" Click="OnDetailOpenFile"
+                                Style="{StaticResource IconTextButtonStyle}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE8E5;" FontSize="14" />
+                                <TextBlock Text="用默认应用打开" />
+                            </StackPanel>
+                        </Button>
                     </StackPanel>
                 </ScrollViewer>
             </Border>
         </Grid>
 
-        <!-- Hero 转场动画层：打开详情从缩略图放大，返回时缩小到缩略图（动画期间半透明） -->
+        <!-- 共享元素（Hero）转场动画层：打开详情时从缩略图放大，返回时缩小回缩略图。
+             RenderTransform 由 HeroTransition 在运行时挂上。 -->
         <Image x:Name="HeroImage" Grid.RowSpan="3" Stretch="Uniform" Visibility="Collapsed"
-               IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top">
-            <Image.RenderTransform>
-                <TransformGroup>
-                    <ScaleTransform x:Name="HeroScale" ScaleX="1" ScaleY="1" />
-                    <TranslateTransform x:Name="HeroTransform" />
-                </TransformGroup>
-            </Image.RenderTransform>
-        </Image>
+               IsHitTestVisible="False" HorizontalAlignment="Left" VerticalAlignment="Top" />
     </Grid>
 </Page>

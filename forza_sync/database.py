@@ -7,11 +7,14 @@
 
 from __future__ import annotations
 
+import logging
 import sqlite3
 import threading
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import List, Optional
+
+log = logging.getLogger(__name__)
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS photos (
@@ -53,13 +56,46 @@ class PhotoDatabase:
     # 生命周期
     # ------------------------------------------------------------------
     def connect(self) -> "PhotoDatabase":
-        self.db_path.parent.mkdir(parents=True, exist_ok=True)
-        self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        # 目录创建与打开都单独兜底：本地目录不可写、被安全软件拦截、或放在
+        # 不支持 WAL 的同步盘 / 网络盘上时，给出能直接定位问题的中文提示。
+        try:
+            self.db_path.parent.mkdir(parents=True, exist_ok=True)
+        except OSError as exc:
+            raise sqlite3.OperationalError(
+                f"无法创建数据库目录 {self.db_path.parent}：{exc}。"
+                "请检查该路径是否存在、是否有写入权限。"
+            ) from exc
+
+        try:
+            self._conn = sqlite3.connect(str(self.db_path), check_same_thread=False)
+        except sqlite3.Error as exc:
+            raise sqlite3.OperationalError(
+                f"无法打开数据库 {self.db_path}：{exc}。"
+                "请检查文件权限，或该文件是否被其它程序（如云同步、旧进程）占用。"
+            ) from exc
+
         self._conn.row_factory = sqlite3.Row
-        self._conn.execute("PRAGMA journal_mode=WAL")
+
+        # WAL 需要目录可写（要额外创建 -wal / -shm 文件），部分文件系统也不支持。
+        # 失败时降级到 SQLite 默认的日志模式，而不是直接让整个应用报错。
+        try:
+            self._conn.execute("PRAGMA journal_mode=WAL")
+        except sqlite3.Error:
+            log.warning(
+                "数据库 %s 无法启用 WAL 模式（目录可能只读或文件系统不支持），已降级为默认日志模式",
+                self.db_path,
+            )
+
         self._conn.execute("PRAGMA synchronous=NORMAL")
-        self._conn.executescript(SCHEMA)
-        self._conn.commit()
+
+        try:
+            self._conn.executescript(SCHEMA)
+            self._conn.commit()
+        except sqlite3.Error as exc:
+            raise sqlite3.OperationalError(
+                f"数据库 {self.db_path} 初始化失败：{exc}。文件可能已损坏。"
+            ) from exc
+
         return self
 
     def close(self) -> None:

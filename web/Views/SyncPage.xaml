@@ -2,129 +2,216 @@
     x:Class="ForzaGallerySync.Views.SyncPage"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    xmlns:vm="using:ForzaGallerySync.ViewModels"
-    xmlns:models="using:ForzaGallerySync.Models">
+    xmlns:models="using:ForzaGallerySync.Models"
+    xmlns:vm="using:ForzaGallerySync.ViewModels">
 
-    <Grid Padding="18" ColumnSpacing="16" ColumnDefinitions="340,*">
+    <Grid Padding="18" ColumnSpacing="16" ColumnDefinitions="360,*">
 
-        <!-- 左侧：同步参数 -->
+        <!-- ================= 左列：本次同步参数 ================= -->
         <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="14">
-                <TextBlock Text="同步设置" FontSize="16" FontWeight="SemiBold" />
+            <StackPanel Spacing="16">
 
-                <TextBlock Text="选择游戏" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                <ItemsControl ItemsSource="{x:Bind VM.GameToggles, Mode=OneWay}">
-                    <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                            <ItemsWrapGrid Orientation="Horizontal" />
-                        </ItemsPanelTemplate>
-                    </ItemsControl.ItemsPanel>
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:GameToggleViewModel">
-                            <ToggleButton Content="{x:Bind Name}" IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
-                                          MinWidth="150" Margin="0,0,8,8" FontWeight="SemiBold" />
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                </ItemsControl>
-
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                    <StackPanel Spacing="4">
-                        <TextBlock Text="最大照片数" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBox Text="{x:Bind VM.MaxPhotos, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="全部" />
-                    </StackPanel>
-                    <StackPanel Grid.Column="1" Spacing="4">
-                        <TextBlock Text="每页数量" FontSize="12" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBox Text="{x:Bind VM.PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                 PlaceholderText="默认" />
-                    </StackPanel>
-                </Grid>
-
-                <ToggleSwitch Header="强制重新下载（覆盖已存在文件）"
-                              IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
-
-                <StackPanel Orientation="Horizontal" Spacing="10">
-                    <Button Content="▶ 开始同步" Style="{ThemeResource AccentButtonStyle}"
-                            IsEnabled="{x:Bind VM.CanStart, Mode=OneWay}" Click="OnStart" />
-                    <Button Content="■ 停止" IsEnabled="{x:Bind VM.Running, Mode=OneWay}" Click="OnStop" />
+                <StackPanel>
+                    <TextBlock Text="同步" Style="{StaticResource PageTitleTextStyle}" />
+                    <TextBlock Text="选择本次要处理的游戏并启动同步；下载目录、并发等全局配置在「设置」页。"
+                               Style="{StaticResource PageSubtitleTextStyle}" />
                 </StackPanel>
 
-                <TextBlock Text="{x:Bind VM.ActionError, Mode=OneWay}"
-                           Foreground="{ThemeResource DangerBrush}" TextWrapping="Wrap" />
-                <TextBlock Text="{x:Bind VM.Message, Mode=OneWay}"
-                           Foreground="{ThemeResource SuccessBrush}" TextWrapping="Wrap" />
+                <Border Style="{StaticResource CardBorderStyle}">
+                    <StackPanel Spacing="16">
+
+                        <!-- 游戏多选 -->
+                        <StackPanel Spacing="8">
+                            <TextBlock Text="本次同步的游戏" Style="{StaticResource FieldLabelTextStyle}" />
+                            <ItemsControl ItemsSource="{x:Bind VM.GameToggles, Mode=OneWay}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <ItemsWrapGrid Orientation="Horizontal" />
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:GameToggleViewModel">
+                                        <ToggleButton Content="{x:Bind Name}"
+                                                      IsChecked="{x:Bind IsChecked, Mode=TwoWay}"
+                                                      MinWidth="150" Margin="0,0,8,8" />
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{x:Bind VM.EnabledGamesHint, Mode=OneWay}"
+                                       Style="{StaticResource FootnoteTextStyle}" />
+                        </StackPanel>
+
+                        <Border Style="{StaticResource CardDividerStyle}" />
+
+                        <!-- 数量上限 -->
+                        <StackPanel Spacing="6">
+                            <TextBlock Text="照片数量上限" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBox Text="{x:Bind VM.MaxPhotos, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                                     PlaceholderText="留空表示不限制" />
+                            <TextBlock Text="可先只处理少量照片，用来验证配置是否正确。"
+                                       Style="{StaticResource FootnoteTextStyle}" />
+                        </StackPanel>
+
+                        <!-- 强制重下 -->
+                        <ToggleSwitch Header="强制重新下载"
+                                      OnContent="覆盖本地已存在的文件"
+                                      OffContent="跳过已下载的照片"
+                                      IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
+
+                        <Border Style="{StaticResource CardDividerStyle}" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Click="OnStart" Style="{StaticResource PrimaryActionButtonStyle}"
+                                    IsEnabled="{x:Bind VM.CanStart, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE768;" FontSize="14" />
+                                    <TextBlock Text="开始同步" />
+                                </StackPanel>
+                            </Button>
+                            <Button Click="OnStop" IsEnabled="{x:Bind VM.Running, Mode=OneWay}">
+                                <StackPanel Orientation="Horizontal" Spacing="8">
+                                    <FontIcon Glyph="&#xE71A;" FontSize="14" />
+                                    <TextBlock Text="停止" />
+                                </StackPanel>
+                            </Button>
+                        </StackPanel>
+
+                        <InfoBar IsOpen="{Binding HasActionError}"
+                                 Severity="Error" IsClosable="False"
+                                 Title="操作失败"
+                                 Message="{Binding ActionError}" />
+
+                        <InfoBar IsOpen="{Binding HasMessage}"
+                                 Severity="Success" IsClosable="False"
+                                 Message="{Binding Message}" />
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
 
-        <!-- 右侧：同步进度 -->
+        <!-- ================= 右列：实时进度 ================= -->
         <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
-            <StackPanel Spacing="14">
-                <TextBlock Text="同步进度" FontSize="16" FontWeight="SemiBold" />
+            <StackPanel Spacing="16">
 
                 <!-- 空闲状态 -->
-                <StackPanel Spacing="6"
-                            Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
-                    <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                    <TextBlock Text="{x:Bind VM.FinishedText, Mode=OneWay}"
-                               Foreground="{ThemeResource TextFillColorSecondaryBrush}" FontSize="12" />
-                </StackPanel>
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="同步进度" Style="{StaticResource SectionTitleTextStyle}" />
 
-                <!-- 运行状态 -->
-                <StackPanel Spacing="12"
-                            Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
-                    <StackPanel Orientation="Horizontal" Spacing="10">
-                        <Border CornerRadius="4" Padding="10,4" Background="{ThemeResource AccentBrush}">
-                            <TextBlock Text="{x:Bind VM.GameName, Mode=OneWay}" FontSize="13" Foreground="White" />
-                        </Border>
-                        <TextBlock Text="{x:Bind VM.ProgCountText, Mode=OneWay}" FontSize="15" FontWeight="SemiBold"
-                                   VerticalAlignment="Center" />
-                        <TextBlock Text="{x:Bind VM.PercentText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
-                                   Foreground="{ThemeResource AccentBrush}" VerticalAlignment="Center" />
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <FontIcon Glyph="&#xE9D9;" FontSize="20"
+                                      Foreground="{ThemeResource TextFillColorTertiaryBrush}"
+                                      VerticalAlignment="Center" />
+                            <StackPanel VerticalAlignment="Center">
+                                <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}" FontSize="13" TextWrapping="Wrap" />
+                                <TextBlock Text="{x:Bind VM.FinishedText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}" />
+                            </StackPanel>
+                        </StackPanel>
+
+                        <!-- 上次结果 -->
+                        <StackPanel Spacing="10"
+                                    Visibility="{x:Bind VM.HasResult, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                            <Border Style="{StaticResource CardDividerStyle}" />
+                            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                                <StackPanel Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                    <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource AppSuccessBrush}" />
+                                    <TextBlock Text="新增" Style="{StaticResource FootnoteTextStyle}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                    <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
+                                    <TextBlock Text="跳过" Style="{StaticResource FootnoteTextStyle}" />
+                                </StackPanel>
+                                <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                            CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                    <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold"
+                                               Foreground="{ThemeResource AppDangerBrush}" />
+                                    <TextBlock Text="失败" Style="{StaticResource FootnoteTextStyle}" />
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
                     </StackPanel>
+                </Border>
 
-                    <ProgressBar Maximum="100" Value="{x:Bind VM.Percent, Mode=OneWay}" Height="8" />
+                <!-- 运行中 -->
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Spacing="14">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <TextBlock Text="同步进度" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
+                            <TextBlock Grid.Column="1" Text="{x:Bind VM.PercentText, Mode=OneWay}"
+                                       FontSize="20" FontWeight="SemiBold"
+                                       Foreground="{ThemeResource AppBrandBrush}" />
+                        </Grid>
 
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
-                        <StackPanel Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    CornerRadius="8" Padding="12">
-                            <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
-                                       Foreground="{ThemeResource SuccessBrush}" />
-                            <TextBlock Text="新增" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
+                        <ProgressBar Maximum="100" Value="{x:Bind VM.Percent, Mode=OneWay}" Height="6" />
+
+                        <StackPanel Orientation="Horizontal" Spacing="12">
+                            <Border CornerRadius="{StaticResource PillCornerRadius}" Padding="8,3"
+                                    Background="{ThemeResource AccentFillColorTertiaryBrush}">
+                                <TextBlock Text="{x:Bind VM.GameName, Mode=OneWay}" FontSize="11" />
+                            </Border>
+                            <TextBlock Text="{x:Bind VM.ProgCountText, Mode=OneWay}" FontSize="13"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind VM.ElapsedText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}"
+                                       VerticalAlignment="Center" />
+                            <TextBlock Text="{x:Bind VM.EtaText, Mode=OneWay}" Style="{StaticResource CaptionTextStyle}"
+                                       VerticalAlignment="Center" />
                         </StackPanel>
-                        <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    CornerRadius="8" Padding="12">
-                            <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="20" FontWeight="Bold" />
-                            <TextBlock Text="跳过" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                        <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
-                                    CornerRadius="8" Padding="12">
-                            <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="20" FontWeight="Bold"
-                                       Foreground="{ThemeResource DangerBrush}" />
-                            <TextBlock Text="失败" FontSize="11" Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        </StackPanel>
-                    </Grid>
 
-                    <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}" FontSize="13" TextWrapping="Wrap" />
+                        <Grid ColumnDefinitions="*,*,*" ColumnSpacing="12">
+                            <StackPanel Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource AppSuccessBrush}" />
+                                <TextBlock Text="新增" Style="{StaticResource FootnoteTextStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
+                                <TextBlock Text="跳过" Style="{StaticResource FootnoteTextStyle}" />
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
+                                        CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
+                                <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold"
+                                           Foreground="{ThemeResource AppDangerBrush}" />
+                                <TextBlock Text="失败" Style="{StaticResource FootnoteTextStyle}" />
+                            </StackPanel>
+                        </Grid>
 
-                    <TextBlock Text="正在取消…" Foreground="{ThemeResource WarnBrush}"
-                               Visibility="{x:Bind VM.CancelRequested, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}" FontSize="13" TextWrapping="Wrap" />
 
-                    <ItemsControl ItemsSource="{x:Bind VM.FailedItems, Mode=OneWay}">
-                        <ItemsControl.ItemTemplate>
-                            <DataTemplate x:DataType="models:FailedItem">
-                                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8" Padding="0,3">
-                                    <TextBlock Text="{x:Bind Url}" FontSize="12"
-                                               Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                                               TextTrimming="CharacterEllipsis" />
-                                    <TextBlock Grid.Column="1" Text="{x:Bind Reason}" FontSize="12"
-                                               Foreground="{ThemeResource DangerBrush}" MaxWidth="280"
-                                               TextTrimming="CharacterEllipsis" />
-                                </Grid>
-                            </DataTemplate>
-                        </ItemsControl.ItemTemplate>
-                    </ItemsControl>
-                </StackPanel>
+                        <InfoBar IsOpen="{Binding CancelRequested}"
+                                 Severity="Informational" IsClosable="False"
+                                 Title="正在取消"
+                                 Message="已发送取消请求，等待当前批次结束。" />
+                    </StackPanel>
+                </Border>
+
+                <!-- 失败明细 -->
+                <Border Style="{StaticResource CardBorderStyle}"
+                        Visibility="{x:Bind VM.HasFailures, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                    <StackPanel Spacing="10">
+                        <TextBlock Text="失败明细" Style="{StaticResource SectionTitleTextStyle}" />
+                        <ItemsControl ItemsSource="{x:Bind VM.FailedItems, Mode=OneWay}">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="models:FailedItem">
+                                    <Grid ColumnDefinitions="*,Auto" ColumnSpacing="12" Padding="0,4">
+                                        <TextBlock Text="{x:Bind Url}" FontSize="12"
+                                                   Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock Grid.Column="1" Text="{x:Bind Reason}" FontSize="12"
+                                                   Foreground="{ThemeResource AppDangerBrush}"
+                                                   MaxWidth="280" TextTrimming="CharacterEllipsis" />
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
             </StackPanel>
         </ScrollViewer>
     </Grid>

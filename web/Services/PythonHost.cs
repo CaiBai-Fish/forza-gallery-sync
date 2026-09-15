@@ -139,14 +139,27 @@ public static class PythonHost
         // 内嵌 zip 的哈希：用于识别已解压运行时是否与当前程序版本一致。
         var embeddedHash = ComputeEmbeddedRuntimeHash();
 
-        // 1. 首选根目录（便携→程序目录；否则→默认安装目录）已有一致的运行时。
+        // 1. 环境变量 FORZA_SYNC_PYTHON_HOME（开发环境，不参与哈希校验）。
+        //
+        // 必须优先于安装目录里的运行时：否则机器上装过打包版后，安装目录的旧运行时
+        // 会一直胜出，开发时改了代码却仍在跑旧版本，且现象非常隐蔽。
+        // forza_sync 包由 ResolveProjectRoot 另行定位（可从仓库根目录取源码），
+        // 因此这里只校验它是不是一个可用的 Python 环境。
+        var env = Environment.GetEnvironmentVariable("FORZA_SYNC_PYTHON_HOME");
+        if (!string.IsNullOrWhiteSpace(env) && IsValidPythonHome(env))
+        {
+            Logger.Info($"使用 FORZA_SYNC_PYTHON_HOME 指定的 Python 环境: {env}");
+            return (TrimEndingSeparator(Path.GetFullPath(env)), "");
+        }
+
+        // 2. 首选根目录（便携→程序目录；否则→默认安装目录）已有一致的运行时。
         var home = TryUseExistingRuntime(Path.Combine(preferredRoot, RuntimeDirName), embeddedHash);
         if (home is not null)
         {
             return (home, preferredRoot);
         }
 
-        // 2. 程序目录 python\（兼容旧安装器「运行时与程序同目录」的布局）。
+        // 3. 程序目录 python\（兼容旧安装器「运行时与程序同目录」的布局）。
         if (!IsSamePath(preferredRoot, programDir))
         {
             home = TryUseExistingRuntime(Path.Combine(programDir, RuntimeDirName), embeddedHash);
@@ -154,13 +167,6 @@ public static class PythonHost
             {
                 return (home, programDir);
             }
-        }
-
-        // 3. 环境变量 FORZA_SYNC_PYTHON_HOME（开发环境，不参与哈希校验）。
-        var env = Environment.GetEnvironmentVariable("FORZA_SYNC_PYTHON_HOME");
-        if (!string.IsNullOrWhiteSpace(env) && IsValidPythonHome(env))
-        {
-            return (TrimEndingSeparator(Path.GetFullPath(env)), "");
         }
 
         // 4. 内嵌 zip 解压到首选根目录；首选目录不可写（含只读介质）时回退程序目录。

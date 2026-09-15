@@ -7,6 +7,8 @@
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
                 <XamlControlsResources xmlns="using:Microsoft.UI.Xaml.Controls" />
+                <!-- 应用级设计令牌 / 语义色 / 卡片与文本样式 -->
+                <ResourceDictionary Source="ms-appx:///Styles/Controls.xaml" />
             </ResourceDictionary.MergedDictionaries>
 
             <!-- 全局转换器 -->
@@ -14,13 +16,9 @@
             <converters:CountToVisibilityConverter x:Key="CountToVisibility" />
             <converters:BoolToFontWeightConverter x:Key="BoolToFontWeight" />
             <converters:InvertBoolConverter x:Key="InvertBool" />
-
-            <!-- 应用级样式 / 资源 -->
-            <SolidColorBrush x:Key="AccentBrush" Color="#2EA8FF" />
-            <SolidColorBrush x:Key="Accent2Brush" Color="#7B5CFF" />
-            <SolidColorBrush x:Key="SuccessBrush" Color="#3DDC97" />
-            <SolidColorBrush x:Key="DangerBrush" Color="#FF5C5C" />
-            <SolidColorBrush x:Key="WarnBrush" Color="#FFB020" />
+            <converters:StringToVisibilityConverter x:Key="StringToVisibility" />
+            <converters:ResourceBrushConverter x:Key="ResourceBrush" />
+            <converters:BoolToStatusBrushConverter x:Key="BoolToStatusBrush" />
         </ResourceDictionary>
     </Application.Resources>
 </Application>

@@ -118,14 +118,17 @@ forza-sync token refresh
 > **内嵌在程序内**，首次运行时自动解压（干净目录→程序目录，否则→默认安装目录），
 > 用户无需单独安装 Python / Node / Rust / WebView2，也无需运行安装程序。
 
-界面包含四个模块：
+界面包含四个模块（导航按「图库 / 任务」分组，左侧为浏览与统计，右侧为任务与配置）：
 
 | 窗口 | 功能 |
 | --- | --- |
-| 📊 仪表盘 | 照片统计、按游戏/月份分布、Token 状态、最近同步记录、快速操作 |
-| 🖼️ 照片库 | 浏览已同步照片（网格 + 详情）、按游戏/月份筛选、搜索、分页 |
-| 🔄 同步 | 选择游戏、配置参数、启动/停止同步、实时进度与失败明细 |
-| ⚙️ 设置 | 浏览器一键登录、Token 刷新、下载目录 / 并发 / 分页等配置、检查更新 |
+| 📊 总览 | 照片总量、按游戏分布、最近同步记录、最新照片预览；只读统计 + 快捷入口 |
+| 🖼️ 照片库 | 自适应缩略图网格 + 详情大图（Hero 转场）、按游戏/月份筛选、搜索、分页 |
+| 🔄 同步 | 本次任务参数（选游戏 / 数量上限 / 强制重下）、实时进度、已用时长与剩余时间、失败明细 |
+| ⚙️ 设置 | 浏览器一键登录、Token 刷新、下载目录、网络与并发、启用游戏、检查更新 |
+
+> 职责划分：**「同步」页只放本次任务的参数**，**每页数量 / 并发 / 超时 / 重试 / 启用游戏等全局配置统一在「设置」页**，
+> 避免同一份配置在多处重复维护。左侧导航页脚常驻显示账号状态，标题栏在同步进行中显示进度。
 
 ### 开发调试（WinUI 3）
 
@@ -139,8 +142,50 @@ dotnet run -p:Platform=x64            # 运行桌面窗口
 
 > Python 运行时定位：程序目录 / 默认安装目录的 `python\` → 环境变量 `FORZA_SYNC_PYTHON_HOME` →
 > 内嵌资源 zip（`make-runtime.ps1` 生成，首次运行自动解压）→ 均失败时给出明确错误。
-> 开发时可设置 `FORZA_SYNC_PYTHON_HOME` 指向本地 Python 环境；
+> 开发时可设置 `FORZA_SYNC_PYTHON_HOME` 指向本地 Python 环境（**优先级高于安装目录里的运行时**，
+> 避免机器上装过打包版后一直跑到旧版本）；
 > 想让运行时/数据库落在指定目录，可设置 `FORZA_SYNC_INSTALL_DIR` / `FORZA_SYNC_APP_DIR`。
+
+#### UI 结构与开发约定
+
+- 视觉规范全部走主题资源：语义色定义在 `web/Styles/Controls.xaml` 的 `ThemeDictionaries`
+  （浅色 / 深色两套），页面统一用 `CardBorderStyle` / `CaptionTextStyle` 等共享样式，
+  不写死颜色，跟随系统浅色 / 深色主题自动适配。
+- 新增页面时引用共享样式即可，无需重复定义卡片外观。
+- **本项目 XAML 编译器的两个已知坑**（踩到时会报难以定位的
+  `MSB3073: XamlCompiler.exe 已退出，代码为 1`，且没有任何具体错误信息）：
+  1. 不要给 `GridView.ItemWidth` / `ItemHeight` 赋值（内部 `ItemsWrapGrid` 面板）——
+     会让代码生成阶段失败。缩略图尺寸改为在代码里直接设置 `ItemsWrapGrid.ItemWidth/ItemHeight`
+     （见 `GalleryPage.OnGridSizeChanged`）。
+  2. 不要对 `InfoBar.IsOpen` 使用 `x:Bind`——同样会让代码生成失败。
+     改用经典 `{Binding}` 并给页面设置 `DataContext`（见 `SyncPage`），
+     或改用内联提示条（见 `SettingsPage`）。
+- 多数情况下 MSB3073 的真正原因是 **C# 编译错误**（XAML 编译器在代码生成前需要加载程序集），
+  排查时先确认 `dotnet build` 输出里是否存在 `error CS`。
+- **检查更新以 `CHANGELOG.md` 为准**，三级来源任一成功即返回：
+  1. 远程 CHANGELOG，**依次尝试 3 个镜像**（GitHub raw → jsDelivr → jsDelivr fastly），
+     规避单一域名在部分网络下不可用；走静态文件下载，不消耗 GitHub API 配额
+  2. 本地 `CHANGELOG.md`（从程序目录、可执行文件目录逐级向上、cwd、仓库根依次查找）
+  3. GitHub Releases API 兜底（有 60 次/小时的匿名限额）
+
+  设置页会把该版本的更新说明一并展示。发布新版本时记得在 CHANGELOG 里补上 `## [x.y.z]` 章节，
+  否则检查更新读不到。（`CHANGELOG.md` **不随程序打包**，打包版依赖远程下载。）
+- **Markdown 渲染用开源控件**：更新说明（CHANGELOG 章节）交给
+  `CommunityToolkit.WinUI.UI.Controls.Markdown`（MIT，底层是 Markdig）渲染，
+  不要自己手写 Markdown 解析。它会带入 `ColorCode`（代码块高亮）等依赖，属正常。
+- **照片相关操作统一走 `web/Services/PhotoActions.cs`**（总览页与照片库共用）：
+  「复制图片」把图片本身写入剪贴板并附带文件路径；「用默认应用打开」走
+  `Process.Start(UseShellExecute: true)` 交给系统按文件类型打开（**不要**用 explorer，那是选中文件）；
+  「打开所在文件夹」才是 explorer `/select`。新增这类操作请加到这个文件，不要在各页面重写一份。
+- **解析 Python 返回的 JSON 必须用 `Models.Json.Deserialize<T>`**：它带 `SnakeCaseLower` 命名策略，
+  能把 Python 的 `snake_case` 字段映射到 C# 的 `PascalCase` 属性。若用裸的
+  `System.Text.Json.JsonSerializer.Deserialize<T>`，字段会静默映射失败、拿到默认值（如 `false`），
+  表现为"后端返回正确但界面状态不对"。
+- **共享元素（Hero）转场**统一走 `web/Services/HeroTransition.cs`（总览页的最新照片预览与
+  照片库详情共用）。实现要点：用覆盖全页的 `Image` 承载动画，缩放/平移走 `RenderTransform`
+  不触发布局；起止矩形每帧从实际元素测量，因此窗口缩放/滚动后依然准确；用会话号
+  （`_previewSession` / `_detailSession`）让仍在飞行中的异步流程作废，避免快速连点串台。
+  新增此类转场时请沿用同一套约定：**先用缓存缩略图铺好布局并同时起帧，原图与元数据在后台加载完再替换**。
 
 ### 打包桌面版程序（无需 Python / Node / Rust 环境）
 
@@ -374,11 +419,14 @@ client_id=nuxt-spa
 │   ├── test_naming.py
 │   └── test_sync.py
 ├── web/                      # 桌面应用（WinUI 3 + C# + Python.NET 内嵌 Python）
-│   ├── App.xaml / App.xaml.cs       # 应用入口（含未处理异常日志）
-│   ├── MainWindow.xaml / .cs        # 主窗口（NavigationView 导航）
+│   ├── App.xaml / App.xaml.cs       # 应用入口（含未处理异常日志、主窗口引用）
+│   ├── MainWindow.xaml / .cs        # 主窗口（分组 NavigationView + 标题栏状态区 + 页脚账号状态）
+│   ├── Styles/Controls.xaml         # 主题资源：语义色 ThemeDictionaries + 卡片/文本/按钮样式
+│   ├── Services/                    # Python.NET 桥接（PythonHost / PyBridge / Logger）+ HeroTransition 共享元素动画
+│   ├── Assets/                      # 应用图标（ico + 标题栏用 png）
 │   ├── ForzaGallerySync.csproj      # 项目配置（嵌入 python-runtime.zip）
-│   ├── Views/                # 四个页面（仪表盘 / 照片库 / 同步 / 设置）
-│   ├── ViewModels/           # MVVM 视图模型（含 Hero 转场 / 侧边栏动画）
+│   ├── Views/                # 四个页面（总览 / 照片库 / 同步 / 设置）
+│   ├── ViewModels/           # MVVM 视图模型（含 Hero 转场 / 侧边栏动画 / 进度计时）
 │   ├── Models/               # 数据模型（snake_case ↔ PascalCase 映射）
 │   ├── Services/             # Python.NET 桥接（PythonHost / PyBridge / Logger）
 │   ├── Converters/           # XAML 值转换器

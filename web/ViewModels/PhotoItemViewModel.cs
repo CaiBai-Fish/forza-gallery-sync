@@ -30,12 +30,47 @@ public sealed class PhotoItemViewModel : ObservableObject
 
     public bool HasThumbnail => _thumbnail is not null;
 
+    /// <summary>原图字节缓存：复制到剪贴板 / 保存时复用，避免反复跨 Python 取数据。</summary>
+    private byte[]? _fullBytes;
+
+    private Task<byte[]>? _fullBytesTask;
+
+    /// <summary>
+    /// 取原图字节（带缓存，并发调用会共用同一次请求）。
+    /// </summary>
+    public Task<byte[]> LoadFullBytesAsync()
+    {
+        if (_fullBytes is { Length: > 0 }) return Task.FromResult(_fullBytes);
+
+        return _fullBytesTask ??= LoadFullBytesCoreAsync();
+    }
+
+    private async Task<byte[]> LoadFullBytesCoreAsync()
+    {
+        try
+        {
+            var bytes = await PyBridge.Instance.CallBytesAsync(
+                "photo_image",
+                Models.Json.Serialize(new { photo_id = PhotoId }));
+            _fullBytes = bytes;
+            return bytes;
+        }
+        catch (Exception ex)
+        {
+            Logger.Exception($"读取图片字节失败 {PhotoId}", ex);
+            _fullBytesTask = null;   // 允许下次重试
+            return Array.Empty<byte>();
+        }
+    }
+
     /// <summary>异步加载本地图片字节并解码为 BitmapImage（缩略图用，缩小解码尺寸）。</summary>
     public async Task LoadThumbnailAsync()
     {
         if (_thumbnail is not null) return;
         try
         {
+            // 缩略图只取一次字节、用完即弃：不写进原图缓存，
+            // 否则一页几十张缩略图会让每个条目都常驻一份全尺寸原图。
             var bytes = await PyBridge.Instance.CallBytesAsync(
                 "photo_image",
                 Models.Json.Serialize(new { photo_id = PhotoId }));
@@ -58,14 +93,15 @@ public sealed class PhotoItemViewModel : ObservableObject
     {
         try
         {
-            var bytes = await PyBridge.Instance.CallBytesAsync(
-                "photo_image",
-                Models.Json.Serialize(new { photo_id = PhotoId }));
+            var bytes = await LoadFullBytesAsync();
             if (bytes.Length == 0) return null;
             var bitmap = new BitmapImage();
             using var ms = new MemoryStream(bytes);
             using var ras = ms.AsRandomAccessStream();
             await bitmap.SetSourceAsync(ras);
+            // 触摸一次像素尺寸，确保解码真正完成再返回；否则调用方可能在
+            // 图片"还没画出来"时就把它当作已就绪，导致画面先空白再跳出。
+            _ = bitmap.PixelWidth;
             return bitmap;
         }
         catch (Exception ex)

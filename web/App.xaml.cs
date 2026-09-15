@@ -10,8 +10,11 @@ namespace ForzaGallerySync;
 /// </summary>
 public partial class App : Application
 {
-    /// <summary>主窗口引用（供目录选择器等需要窗口句柄的场景使用）。</summary>
-    public static Window? MainWindow { get; private set; }
+    /// <summary>
+    /// 主窗口引用。类型为具体窗口类型，便于页面调用导航 / 状态栏更新等窗口级能力
+    /// （目录选择器需要窗口句柄时也能直接用）。
+    /// </summary>
+    public static MainWindow? MainWindow { get; private set; }
 
     public App()
     {

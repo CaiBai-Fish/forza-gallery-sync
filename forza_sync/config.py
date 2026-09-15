@@ -8,6 +8,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import shutil
 import sys
@@ -17,6 +18,8 @@ from typing import Any, Optional
 
 from .errors import ConfigError
 from . import __version__ as _pkg_version
+
+log = logging.getLogger(__name__)
 
 # 游戏代码 → 显示名（默认英文全称，供 CLI / 后端调试；前端 UI 优先使用 i18n 翻译键）
 GAME_DISPLAY_NAMES = {
@@ -161,13 +164,38 @@ class Config:
         app_dir = os.environ.get("FORZA_SYNC_APP_DIR")
         if app_dir:
             app_path = Path(app_dir)
-            if app_path.is_dir():
+            if app_path.is_dir() and _is_writable_dir(app_path):
                 target = app_path / "forza_sync.db"
                 legacy = config_dir / "forza_sync.db"
                 if not target.exists() and legacy.exists():
                     _migrate_db(legacy, target)
-                return target
+                # 迁移失败或数据库文件本身只读时，继续用应用目录只会一直报错。
+                if not target.exists() or os.access(target, os.W_OK):
+                    return target
+                log.warning("程序目录中的数据库不可写，回退到配置目录：%s", target)
+
         return config_dir / "forza_sync.db"
+
+
+def _is_writable_dir(path: Path) -> bool:
+    """目录是否真的可写。
+
+    不能用 os.access 判断：在 Windows 的受限令牌 / 沙箱与某些 ACL 组合下，
+    os.access(W_OK) 会返回 True，但实际创建文件仍被拒绝。这里实际尝试建一个
+    临时文件，成功即删，从而得到可信结论。
+    """
+    probe = path / f".forza-write-probe-{os.getpid()}"
+    try:
+        with open(probe, "w", encoding="utf-8") as handle:
+            handle.write("")
+        return True
+    except OSError:
+        return False
+    finally:
+        try:
+            probe.unlink(missing_ok=True)
+        except OSError:
+            pass
 
 
 def _as_str(value: Any, default: str = "") -> str:

@@ -1,6 +1,6 @@
+using ForzaGallerySync.ViewModels;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using ForzaGallerySync.ViewModels;
 
 namespace ForzaGallerySync.Views;
 
@@ -11,6 +11,11 @@ public sealed partial class SyncPage : Page
     public SyncPage()
     {
         InitializeComponent();
+
+        // InfoBar.IsOpen 用经典 Binding 绑定（x:Bind 指向该属性会让本项目的
+        // XAML 代码生成阶段失败），因此这里必须设置 DataContext。
+        DataContext = VM;
+
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
     }

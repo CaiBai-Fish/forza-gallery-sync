@@ -56,14 +56,26 @@ public sealed class SettingsViewModel : ObservableObject
     public string Error
     {
         get => _error;
-        set => SetProperty(ref _error, value);
+        set
+        {
+            if (SetProperty(ref _error, value)) OnPropertyChanged(nameof(HasError));
+        }
     }
+
+    /// <summary>是否存在错误提示（页面据此显示提示条）。</summary>
+    public bool HasError => !string.IsNullOrEmpty(_error);
 
     public string OkMsg
     {
         get => _okMsg;
-        set => SetProperty(ref _okMsg, value);
+        set
+        {
+            if (SetProperty(ref _okMsg, value)) OnPropertyChanged(nameof(HasOkMsg));
+        }
     }
+
+    /// <summary>是否存在成功提示（页面据此显示提示条）。</summary>
+    public bool HasOkMsg => !string.IsNullOrEmpty(_okMsg);
 
     public string LoginState
     {
@@ -85,8 +97,21 @@ public sealed class SettingsViewModel : ObservableObject
     public ConfigModel Config
     {
         get => _config;
-        set => SetProperty(ref _config, value);
+        set
+        {
+            if (SetProperty(ref _config, value))
+            {
+                OnPropertyChanged(nameof(DatabasePath));
+                OnPropertyChanged(nameof(ConfigPath));
+            }
+        }
     }
+
+    /// <summary>SQLite 数据库路径（只读展示）。</summary>
+    public string DatabasePath => Config.DatabasePath;
+
+    /// <summary>配置文件路径（只读展示）。</summary>
+    public string ConfigPath => Config.ConfigPath;
 
     public AuthModel Auth
     {
@@ -358,6 +383,12 @@ public sealed class SettingsViewModel : ObservableObject
                 UpdateUrl = info.Url;
                 HasUpdate = info.HasUpdate;
                 UpdateText = BuildUpdateText(info);
+
+                // 注意：这两个属性不是 SetProperty 管理的字段，必须显式通知；
+                // 否则 x:Bind(OneWay) 仍显示初始值，界面看上去"没有更新日志"。
+                UpdateNotes = info.Notes;
+                OnPropertyChanged(nameof(UpdateNotes));
+                OnPropertyChanged(nameof(HasUpdateNotes));
             });
         }
         catch (Exception ex)
@@ -383,6 +414,12 @@ public sealed class SettingsViewModel : ObservableObject
             return $"发现新版本 v{info.Latest}（当前 v{info.Current}）";
         return $"已是最新版本（v{info.Current}）";
     }
+
+    /// <summary>最新版本的更新说明（取自 CHANGELOG 对应章节）。</summary>
+    public string UpdateNotes { get; private set; } = "";
+
+    /// <summary>是否有更新说明可展示。</summary>
+    public bool HasUpdateNotes => !string.IsNullOrWhiteSpace(UpdateNotes);
 
     public async Task StartLoginAsync()
     {
