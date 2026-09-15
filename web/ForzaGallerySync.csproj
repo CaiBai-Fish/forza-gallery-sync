@@ -31,7 +31,23 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- 界面文案资源（i18n）放在 Strings\<语言>\Resources.resw：
+    <!-- 界面文案入口在 ViewModels / Views / Services 各层都会用到，
+         统一用全局 using 引入命名空间，避免每个文件各写一遍 using 而漏掉
+         （代码里仍写全名 StringLocalizer.Get/Format，可读性更好）。 -->
+    <Using Include="ForzaGallerySync.Services" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- 界面文案的 JSON 字典（C# 侧读它，见 StringLocalizer）。
+         开发态(bin) 与发布态(publish) 都要有，而两者用的机制不同：
+           * bin   ← <None> + CopyToOutputDirectory；
+           * publish ← 下面的 IncludeAssetsInPublish 把它加进 ResolvedFileToPublish
+             （<Content> 只管 bin 不管 publish，这条踩过多次）。
+         两份都由 tools/i18n_make_json.py 从同目录的 Resources.resw 生成。 -->
+    <None Include="Strings\**\strings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <!-- 界面文案资源（i18n）的**唯一来源**：Strings\<语言>\Resources.resw。
          .NET SDK 会**自动**把 Strings 下的 .resw 收进 PRIResource 并编进 resources.pri，
          不需要（也不能）在这里再显式声明 PRIResource —— 重复包含会报 NETSDK1022。
          不要放进 Resources\（那里是打包脚本与安装程序语言文件，属内嵌/构建资源）。 -->
@@ -62,8 +78,15 @@
         <RelativePath>Assets\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
         <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
       </ResolvedFileToPublish>
+      <!-- 界面文案的 JSON 字典（C# 侧读它，见 StringLocalizer）。
+           同样必须显式进发布列表：<Content> 只落 bin、不进 publish（这条踩过，见上）。 -->
+      <_StringFile Include="$(MSBuildProjectDirectory)\Strings\**\strings.json" />
+      <ResolvedFileToPublish Include="@(_StringFile)">
+        <RelativePath>Strings\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
     </ItemGroup>
-    <Message Importance="normal" Text="Assets 发布项：@(_AssetFile->Count()) 个文件 → Assets\" />
+    <Message Importance="normal" Text="Assets 发布项：@(_AssetFile->Count()) 个；文案字典：@(_StringFile->Count()) 个" />
   </Target>
 
   <!-- ============================================================

@@ -174,7 +174,7 @@ public sealed class GalleryViewModel : ObservableObject
             Ui.Run(() =>
             {
                 GamesList.Clear();
-                GamesList.Add(new GameInfo { Id = "", Name = "全部" });
+                GamesList.Add(new GameInfo { Id = "", Name = StringLocalizer.Get("Gallery_Filter_All") });
                 foreach (var g in cfg.SupportedGames) GamesList.Add(g);
                 DownloadDir = cfg.DownloadDir;
             });
@@ -273,14 +273,14 @@ public sealed class GalleryViewModel : ObservableObject
 
     private void CollectMonths(List<PhotoInfo> items)
     {
-        // 累积所有已见过的月份（跨分页保留），排除占位的"全部"项。
+        // 累积所有已见过的月份（跨分页保留），排除占位的StringLocalizer.Get("Gallery_Filter_All")项。
         var set = new HashSet<string>(Months.Where(m => !string.IsNullOrEmpty(m.Value)).Select(m => m.Value));
         foreach (var p in items)
         {
             if (!string.IsNullOrEmpty(p.Month)) set.Add(p.Month);
         }
         Months.Clear();
-        Months.Add(new MonthOption { Value = "", Label = "全部" });
+        Months.Add(new MonthOption { Value = "", Label = StringLocalizer.Get("Gallery_Filter_All") });
         foreach (var m in set.OrderByDescending(x => x))
         {
             Months.Add(new MonthOption

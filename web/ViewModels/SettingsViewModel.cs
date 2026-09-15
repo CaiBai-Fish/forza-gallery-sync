@@ -127,7 +127,7 @@ public sealed class SettingsViewModel : ObservableObject
     }
 
     public string TokenStatusText =>
-        !Auth.HasToken ? "未配置" : (Auth.Expired ? "已过期" : "有效");
+        !Auth.HasToken ? StringLocalizer.Get("Settings_Token_NotConfigured") : (Auth.Expired ? StringLocalizer.Get("Settings_Token_Expired") : StringLocalizer.Get("Settings_Token_Valid"));
 
     public bool TokenStatusGood => Auth.HasToken && !Auth.Expired;
 
@@ -316,7 +316,7 @@ public sealed class SettingsViewModel : ObservableObject
             Ui.Run(() =>
             {
                 Config = cfg;
-                OkMsg = "设置已保存";
+                OkMsg = StringLocalizer.Get("Settings_Config_Saved");
                 _ = ClearOkMsgAsync();
             });
         }
@@ -345,7 +345,7 @@ public sealed class SettingsViewModel : ObservableObject
         {
             var json = await PyBridge.Instance.CallJsonAsync("auth_refresh");
             var res = Json.Deserialize<Dictionary<string, object?>>(json) ?? new();
-            var msg = res.GetValueOrDefault("message")?.ToString() ?? "Token 已刷新";
+            var msg = res.GetValueOrDefault("message")?.ToString() ?? StringLocalizer.Get("Settings_Token_Refreshed");
             Ui.Run(() => OkMsg = msg);
             await LoadAsync();
         }
@@ -388,7 +388,7 @@ public sealed class SettingsViewModel : ObservableObject
     public async Task CheckUpdateAsync()
     {
         CheckingUpdate = true;
-        UpdateText = "正在检查更新…";
+        UpdateText = StringLocalizer.Get("Update_Checking");
         try
         {
             var json = await PyBridge.Instance.CallJsonAsync("check_update");
@@ -426,7 +426,7 @@ public sealed class SettingsViewModel : ObservableObject
             Ui.Run(() =>
             {
                 HasUpdate = false;
-                UpdateText = "检查更新失败";
+                UpdateText = StringLocalizer.Get("Update_CheckFailed");
                 Error = ex.Message;
             });
         }
@@ -551,7 +551,7 @@ public sealed class SettingsViewModel : ObservableObject
                 var incremental = await TryIncrementalAsync();
                 if (incremental is { } inc)
                 {
-                    UpdateActionMsg = "增量更新已校验，正在准备替换…";
+                    UpdateActionMsg = StringLocalizer.Get("Update_IncrementalVerified");
                     Logger.Info($"增量更新就绪：{inc.ZipPath}（前缀 '{inc.Prefix}'）");
 
                     if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
@@ -571,7 +571,7 @@ public sealed class SettingsViewModel : ObservableObject
                         Environment.UserDomainName + "\\" + Environment.UserName,
                         skipExeCheck: true, preserve: IncrementalUpdateService.ProtectedRelativePaths);
 
-                    UpdateActionMsg = "即将退出并完成增量更新…";
+                    UpdateActionMsg = StringLocalizer.Get("Update_ExitingIncremental");
                     UpdateRequested?.Invoke();
                     return;
                 }
@@ -589,7 +589,7 @@ public sealed class SettingsViewModel : ObservableObject
                 }
                 else
                 {
-                    UpdateActionMsg = "正在下载完整包…";
+                    UpdateActionMsg = StringLocalizer.Get("Update_DownloadingFullUnknown");
                 }
             }));
 
@@ -606,18 +606,18 @@ public sealed class SettingsViewModel : ObservableObject
                 return;
             }
 
-            UpdateActionMsg = "下载完成，哈希校验通过，正在准备替换…";
+            UpdateActionMsg = StringLocalizer.Get("Update_FullVerified");
             Logger.Info($"准备应用更新（完整包）：{zip}，剥离前缀 '{prefix}'");
 
             UpdateService.LaunchReplaceAndRestart(zip, prefix,
                 Environment.UserDomainName + "\\" + Environment.UserName);
 
-            UpdateActionMsg = "即将退出并完成更新…";
+            UpdateActionMsg = StringLocalizer.Get("Update_Exiting");
             UpdateRequested?.Invoke();
         }
         catch (OperationCanceledException)
         {
-            UpdateActionMsg = "已取消下载。";
+            UpdateActionMsg = StringLocalizer.Get("Update_Cancelled");
         }
         catch (Exception ex)
         {
@@ -662,7 +662,7 @@ public sealed class SettingsViewModel : ObservableObject
                 }
                 else
                 {
-                    UpdateActionMsg = "正在下载安装程序…";
+                    UpdateActionMsg = StringLocalizer.Get("Update_DownloadingInstallerUnknown");
                 }
             }));
 
@@ -679,12 +679,12 @@ public sealed class SettingsViewModel : ObservableObject
                 return true;
             }
 
-            UpdateActionMsg = "安装程序已校验，即将退出并开始安装…";
+            UpdateActionMsg = StringLocalizer.Get("Update_InstallerVerified");
             Logger.Info($"准备运行安装程序：{installer}（目录覆盖：{dirOverride ?? "(Inno 默认)"}）");
 
             UpdateService.LaunchInstaller(installer, dirOverride);
 
-            UpdateActionMsg = "应用即将退出并完成安装…";
+            UpdateActionMsg = StringLocalizer.Get("Update_ExitingForInstall");
             UpdateRequested?.Invoke();
             return true;
         }
@@ -696,7 +696,7 @@ public sealed class SettingsViewModel : ObservableObject
         {
             // 不在这里直接报错：让调用方回退到增量/完整包，用户仍有别的更新途径
             Logger.Warn($"安装程序方式失败（将回退）：{ex.Message}");
-            UpdateActionMsg = "安装程序方式不可用，改用其他方式…";
+            UpdateActionMsg = StringLocalizer.Get("Update_InstallerUnavailable");
             return false;
         }
     }
@@ -721,7 +721,7 @@ public sealed class SettingsViewModel : ObservableObject
             if (result is null)
             {
                 Logger.Info("增量更新未命中（本地已是最新 / 需要完整包），回退完整包");
-                UpdateActionMsg = "增量更新不适用，改用完整包…";
+                UpdateActionMsg = StringLocalizer.Get("Update_IncrementalUnavailable");
                 return null;
             }
 
@@ -782,7 +782,7 @@ public sealed class SettingsViewModel : ObservableObject
             Ui.Run(() =>
             {
                 LoginState = "running";
-                LoginMsg = res.GetValueOrDefault("message")?.ToString() ?? "正在打开浏览器…";
+                LoginMsg = res.GetValueOrDefault("message")?.ToString() ?? StringLocalizer.Get("Settings_Login_OpeningBrowser");
             });
         }
         catch (Exception ex)

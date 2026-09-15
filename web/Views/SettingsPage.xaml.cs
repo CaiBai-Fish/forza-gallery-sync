@@ -47,15 +47,15 @@ public sealed partial class SettingsPage : Page
         var dialog = new ContentDialog
         {
             XamlRoot = XamlRoot,
-            Title = "需要手动更新",
+            Title = StringLocalizer.Get("Settings_ManualUpdate_Title"),
             Content = new TextBlock
             {
                 Text = $"无法自动更新：{reason}\n\n可以在打开的下载页手动下载安装包并运行。",
                 TextWrapping = TextWrapping.Wrap,
                 FontSize = 13,
             },
-            PrimaryButtonText = "打开发布页",
-            CloseButtonText = "取消",
+            PrimaryButtonText = StringLocalizer.Get("Settings_ManualUpdate_Open"),
+            CloseButtonText = StringLocalizer.Get("Common_Cancel"),
             DefaultButton = ContentDialogButton.Primary,
         };
 

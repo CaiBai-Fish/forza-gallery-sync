@@ -53,7 +53,7 @@ public sealed class SyncViewModel : ObservableObject
     public string SyncedText => Prog is null ? "0" : Prog.Synced.ToString();
     public string SkippedText => Prog is null ? "0" : Prog.Skipped.ToString();
     public string FailedText => Prog is null ? "0" : Prog.Failed.ToString();
-    public string ProgMessage => Prog?.Message ?? "当前没有运行中的任务";
+    public string ProgMessage => Prog?.Message ?? StringLocalizer.Get("Sync_NoRunningTask");
     public string FinishedText =>
         Prog is { FinishedAt: not null } ? $"完成时间 {Format.Time(Prog.FinishedAt)}" : "";
 
@@ -95,9 +95,9 @@ public sealed class SyncViewModel : ObservableObject
     /// <summary>勾选情况提示（勾选默认对齐设置页的启用游戏）。</summary>
     public string EnabledGamesHint =>
         GameToggles.Count == 0
-            ? "正在加载游戏列表…"
+            ? StringLocalizer.Get("Sync_LoadingGames")
             : SelectedCount == 0
-                ? "未勾选任何游戏，将同步设置页中启用的游戏。"
+                ? StringLocalizer.Get("Sync_NoSelection")
                 : $"本次将同步勾选的 {SelectedCount} 个游戏。";
 
     private int SelectedCount => GameToggles.Count(t => t.IsChecked);
@@ -235,13 +235,13 @@ public sealed class SyncViewModel : ObservableObject
 
         if (prog.Done <= 0 || prog.Total <= 0)
         {
-            EtaText = "正在估算剩余时间…";
+            EtaText = StringLocalizer.Get("Sync_EtaEstimating");
             return;
         }
 
         var remaining = TimeSpan.FromSeconds(
             elapsed.TotalSeconds / prog.Done * Math.Max(0, prog.Total - prog.Done));
-        EtaText = remaining.TotalSeconds < 1 ? "即将完成" : $"预计剩余 {FormatClock(remaining)}";
+        EtaText = remaining.TotalSeconds < 1 ? StringLocalizer.Get("Sync_EtaAlmostDone") : $"预计剩余 {FormatClock(remaining)}";
     }
 
     private static string FormatClock(TimeSpan span) =>

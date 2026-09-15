@@ -51,10 +51,10 @@ public sealed class DashboardViewModel : ObservableObject
     private bool _loading = true;
     private string _error = "";
     private string _heroTotal = "0";
-    private string _heroCaption = "尚未同步任何照片";
+    private string _heroCaption = StringLocalizer.Get("Dash_Hero_NoPhotos");
     private string _lastSyncText = "—";
     private bool _tokenOk;
-    private string _tokenSummary = "未配置";
+    private string _tokenSummary = StringLocalizer.Get("Settings_Token_NotConfigured");
 
     public bool Loading
     {
@@ -190,47 +190,47 @@ public sealed class DashboardViewModel : ObservableObject
 
         HeroTotal = total.ToString("N0");
         HeroCaption = total == 0
-            ? "尚未同步任何照片，先登录并执行一次同步"
+            ? StringLocalizer.Get("Dash_Hero_NotSynced")
             : $"来自 {gamesWithPhotos} 个游戏 · 覆盖 {months} 个月份";
 
         TokenOk = d.Token.HasToken && !d.Token.Expired;
         TokenSummary = !d.Token.HasToken
-            ? "未配置 Token"
-            : (d.Token.Expired ? "Token 已过期" : "Token 有效");
+            ? StringLocalizer.Get("Dash_Token_Missing")
+            : (d.Token.Expired ? StringLocalizer.Get("Dash_Token_Expired") : StringLocalizer.Get("Dash_Token_Valid"));
 
         var pendingGames = d.Config.EnabledGames.Count - gamesWithPhotos;
 
         Stats.Clear();
         Stats.Add(new StatCardViewModel
         {
-            Label = "照片总数",
+            Label = StringLocalizer.Get("Dash_Card_TotalPhotos"),
             Value = total.ToString("N0"),
             Glyph = "\uEB9F",
-            Caption = months > 0 ? $"覆盖 {months} 个月" : "暂无数据",
+            Caption = months > 0 ? $"覆盖 {months} 个月" : StringLocalizer.Get("Dash_Card_NoData"),
             AccentKey = "AppAccentBrush",
         });
         Stats.Add(new StatCardViewModel
         {
-            Label = "已同步游戏",
+            Label = StringLocalizer.Get("Dash_Card_SyncedGames"),
             Value = $"{gamesWithPhotos} / {d.Config.EnabledGames.Count}",
             Glyph = "\uE7FC",
-            Caption = pendingGames > 0 ? $"{pendingGames} 个启用游戏还没有照片" : "全部启用游戏均有照片",
+            Caption = pendingGames > 0 ? $"{pendingGames} 个启用游戏还没有照片" : StringLocalizer.Get("Dash_Card_AllGamesHavePhotos"),
             AccentKey = "AppBrandBrush",
         });
         Stats.Add(new StatCardViewModel
         {
-            Label = "最近同步",
+            Label = StringLocalizer.Get("Dash_Card_LastSync"),
             Value = LastSyncText,
             Glyph = "\uE823",
-            Caption = latest is null ? "尚未执行过同步" : UseGames.Name(latest.Game),
+            Caption = latest is null ? StringLocalizer.Get("Dash_Card_NeverSynced") : UseGames.Name(latest.Game),
             AccentKey = "AppWarnBrush",
         });
         Stats.Add(new StatCardViewModel
         {
-            Label = "账号状态",
+            Label = StringLocalizer.Get("Dash_Card_AccountStatus"),
             Value = TokenSummary,
             Glyph = TokenOk ? "\uE72E" : "\uE7BA",
-            Caption = TokenOk ? "Token 可正常调用接口" : "前往设置页完成登录",
+            Caption = TokenOk ? StringLocalizer.Get("Dash_Card_TokenOk") : StringLocalizer.Get("Dash_Card_GoSettings"),
             AccentKey = TokenOk ? "AppSuccessBrush" : "AppDangerBrush",
         });
 

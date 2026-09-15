@@ -52,8 +52,7 @@
                         </StackPanel>
 
                         <!-- 强制重下 -->
-                        <ToggleSwitch x:Uid="SyncPage_OnContent_00"
-                                      OffContent="跳过已下载的照片"
+                        <ToggleSwitch x:Uid="SyncPage_OffContent_00"
                                       IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
 
                         <Border Style="{StaticResource CardDividerStyle}" />

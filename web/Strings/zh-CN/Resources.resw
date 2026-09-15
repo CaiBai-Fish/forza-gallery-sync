@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
-    生成的界面文案文件（由 tools/i18n_apply.py 从 web/i18n-map.json 生成）。
-
-    ⚠️ 资源名必须带**属性后缀**：x:Uid="K" 时 WinUI 会去找 "K.Text" / "K.Content" /
-    "K.PlaceholderText" …（后缀就是它在 XAML 里要设的那个属性名）。
-    早期版本生成的是裸键 "K"，WinUI 找不到对应属性 → **所有 x:Uid 文案渲染成空白**
-    （截图一看就是导航栏和页面标题全没了），这是本项目踩过的最隐蔽的一次：
-    UI Automation 检查只会显示"文本为空"而不报错，所以必须实际截图确认。
-
-    后缀按原属性映射：<模块>_<属性>_<序号> 里的中段就是属性名，转小写后作后缀即可
-    （Tooltip / Header / OnContent / OffContent / PlaceholderText 都直接对应属性名）。
+    界面文案（简体中文，默认语言）
+    由 tools/i18n_apply.py（XAML 侧）与 tools/i18n_apply_cs.py（C# 侧）共同维护，
+    手工改动会被脚本覆盖。
   -->
   <data name="MainWindow_Title_00.Title" xml:space="preserve">
     <value>Forza Gallery Sync 控制台</value>
@@ -365,5 +358,238 @@
   </data>
   <data name="SyncPage_Text_15.Text" xml:space="preserve">
     <value>失败明细</value>
+  </data>
+  <data name="Main_Title.Text" xml:space="preserve">
+    <value>Forza Gallery Sync 控制台</value>
+  </data>
+  <data name="Main_Status_Syncing_Count.Text" xml:space="preserve">
+    <value>同步中 {0}/{1}</value>
+  </data>
+  <data name="Main_Status_Syncing.Text" xml:space="preserve">
+    <value>同步中</value>
+  </data>
+  <data name="Main_Status_Cancelling.Text" xml:space="preserve">
+    <value>正在取消</value>
+  </data>
+  <data name="Main_Account_SignedIn.Text" xml:space="preserve">
+    <value>已登录</value>
+  </data>
+  <data name="Main_Account_TokenExpired.Text" xml:space="preserve">
+    <value>Token 已过期</value>
+  </data>
+  <data name="Main_Account_NotSignedIn.Text" xml:space="preserve">
+    <value>未登录</value>
+  </data>
+  <data name="Dash_Hero_NoPhotos.Text" xml:space="preserve">
+    <value>尚未同步任何照片</value>
+  </data>
+  <data name="Dash_Token_NotConfigured.Text" xml:space="preserve">
+    <value>未配置</value>
+  </data>
+  <data name="Dash_Hero_NotSynced.Text" xml:space="preserve">
+    <value>尚未同步任何照片，先登录并执行一次同步</value>
+  </data>
+  <data name="Dash_Hero_Summary.Text" xml:space="preserve">
+    <value>来自 {0} 个游戏 · 覆盖 {1} 个月份</value>
+  </data>
+  <data name="Dash_Token_Missing.Text" xml:space="preserve">
+    <value>未配置 Token</value>
+  </data>
+  <data name="Dash_Token_Expired.Text" xml:space="preserve">
+    <value>Token 已过期</value>
+  </data>
+  <data name="Dash_Token_Valid.Text" xml:space="preserve">
+    <value>Token 有效</value>
+  </data>
+  <data name="Dash_Card_TotalPhotos.Text" xml:space="preserve">
+    <value>照片总数</value>
+  </data>
+  <data name="Dash_Card_CoverMonths.Text" xml:space="preserve">
+    <value>覆盖 {0} 个月</value>
+  </data>
+  <data name="Dash_Card_NoData.Text" xml:space="preserve">
+    <value>暂无数据</value>
+  </data>
+  <data name="Dash_Card_SyncedGames.Text" xml:space="preserve">
+    <value>已同步游戏</value>
+  </data>
+  <data name="Dash_Card_PendingGames.Text" xml:space="preserve">
+    <value>{0} 个启用游戏还没有照片</value>
+  </data>
+  <data name="Dash_Card_AllGamesHavePhotos.Text" xml:space="preserve">
+    <value>全部启用游戏均有照片</value>
+  </data>
+  <data name="Dash_Card_LastSync.Text" xml:space="preserve">
+    <value>最近同步</value>
+  </data>
+  <data name="Dash_Card_NeverSynced.Text" xml:space="preserve">
+    <value>尚未执行过同步</value>
+  </data>
+  <data name="Dash_Card_AccountStatus.Text" xml:space="preserve">
+    <value>账号状态</value>
+  </data>
+  <data name="Dash_Card_TokenOk.Text" xml:space="preserve">
+    <value>Token 可正常调用接口</value>
+  </data>
+  <data name="Dash_Card_GoSettings.Text" xml:space="preserve">
+    <value>前往设置页完成登录</value>
+  </data>
+  <data name="Dash_Sync_Fetched.Text" xml:space="preserve">
+    <value>拉取 {0} 条 · 已同步 {1} 条</value>
+  </data>
+  <data name="Format_Unknown.Text" xml:space="preserve">
+    <value>未知</value>
+  </data>
+  <data name="Format_HoursMinutes.Text" xml:space="preserve">
+    <value>{0} 小时 {1} 分</value>
+  </data>
+  <data name="Format_Minutes.Text" xml:space="preserve">
+    <value>{0} 分钟</value>
+  </data>
+  <data name="Gallery_Filter_All.Text" xml:space="preserve">
+    <value>全部</value>
+  </data>
+  <data name="Gallery_Detail_Untitled.Text" xml:space="preserve">
+    <value>无标题</value>
+  </data>
+  <data name="Gallery_Detail_NoDescription.Text" xml:space="preserve">
+    <value>无描述</value>
+  </data>
+  <data name="Gallery_Detail_Meta.Text" xml:space="preserve">
+    <value>{0} · 上传 {1} · 下载 {2}</value>
+  </data>
+  <data name="Settings_Config_Saved.Text" xml:space="preserve">
+    <value>设置已保存</value>
+  </data>
+  <data name="Settings_Token_Refreshed.Text" xml:space="preserve">
+    <value>Token 已刷新</value>
+  </data>
+  <data name="Settings_Token_NotConfigured.Text" xml:space="preserve">
+    <value>未配置</value>
+  </data>
+  <data name="Settings_Token_Expired.Text" xml:space="preserve">
+    <value>已过期</value>
+  </data>
+  <data name="Settings_Token_Valid.Text" xml:space="preserve">
+    <value>有效</value>
+  </data>
+  <data name="Update_Checking.Text" xml:space="preserve">
+    <value>正在检查更新…</value>
+  </data>
+  <data name="Update_CheckFailed.Text" xml:space="preserve">
+    <value>检查更新失败</value>
+  </data>
+  <data name="Update_CheckFailedDetail.Text" xml:space="preserve">
+    <value>检查更新失败：{0}</value>
+  </data>
+  <data name="Update_FoundNew.Text" xml:space="preserve">
+    <value>发现新版本 v{0}（当前 v{1}）</value>
+  </data>
+  <data name="Update_UpToDate.Text" xml:space="preserve">
+    <value>已是最新版本（v{0}）</value>
+  </data>
+  <data name="Update_Preparing.Text" xml:space="preserve">
+    <value>正在准备更新 {0}…</value>
+  </data>
+  <data name="Update_IncrementalVerified.Text" xml:space="preserve">
+    <value>增量更新已校验，正在准备替换…</value>
+  </data>
+  <data name="Update_SimulateIncremental.Text" xml:space="preserve">
+    <value>模拟模式（增量）：{0}</value>
+  </data>
+  <data name="Update_ExitingIncremental.Text" xml:space="preserve">
+    <value>即将退出并完成增量更新…</value>
+  </data>
+  <data name="Update_DownloadingFull.Text" xml:space="preserve">
+    <value>正在下载完整包 {0}… {1:F0}%</value>
+  </data>
+  <data name="Update_DownloadingFullUnknown.Text" xml:space="preserve">
+    <value>正在下载完整包…</value>
+  </data>
+  <data name="Update_SimulateBasic.Text" xml:space="preserve">
+    <value>模拟模式：下载与哈希已校验；{0}</value>
+  </data>
+  <data name="Update_FullVerified.Text" xml:space="preserve">
+    <value>下载完成，哈希校验通过，正在准备替换…</value>
+  </data>
+  <data name="Update_Exiting.Text" xml:space="preserve">
+    <value>即将退出并完成更新…</value>
+  </data>
+  <data name="Update_Cancelled.Text" xml:space="preserve">
+    <value>已取消下载。</value>
+  </data>
+  <data name="Update_InstalledMode.Text" xml:space="preserve">
+    <value>检测到安装版（注册表记录位置：{0}），安装程序将使用该目录</value>
+  </data>
+  <data name="Update_PortableMode.Text" xml:space="preserve">
+    <value>检测到免安装版，安装程序将装回当前目录：{0}</value>
+  </data>
+  <data name="Update_DownloadingInstaller.Text" xml:space="preserve">
+    <value>正在下载安装程序 {0}…</value>
+  </data>
+  <data name="Update_DownloadingInstallerPct.Text" xml:space="preserve">
+    <value>正在下载安装程序 {0}… {1:F0}%</value>
+  </data>
+  <data name="Update_DownloadingInstallerUnknown.Text" xml:space="preserve">
+    <value>正在下载安装程序…</value>
+  </data>
+  <data name="Update_SimulateInstaller.Text" xml:space="preserve">
+    <value>模拟模式（安装程序）：下载与哈希已校验；{0}</value>
+  </data>
+  <data name="Update_InstallerVerified.Text" xml:space="preserve">
+    <value>安装程序已校验，即将退出并开始安装…</value>
+  </data>
+  <data name="Update_ExitingForInstall.Text" xml:space="preserve">
+    <value>应用即将退出并完成安装…</value>
+  </data>
+  <data name="Update_InstallerUnavailable.Text" xml:space="preserve">
+    <value>安装程序方式不可用，改用其他方式…</value>
+  </data>
+  <data name="Update_IncrementalUnavailable.Text" xml:space="preserve">
+    <value>增量更新不适用，改用完整包…</value>
+  </data>
+  <data name="Settings_Login_OpeningBrowser.Text" xml:space="preserve">
+    <value>正在打开浏览器…</value>
+  </data>
+  <data name="Sync_NoRunningTask.Text" xml:space="preserve">
+    <value>当前没有运行中的任务</value>
+  </data>
+  <data name="Sync_FinishedAt.Text" xml:space="preserve">
+    <value>完成时间 {0}</value>
+  </data>
+  <data name="Sync_LoadingGames.Text" xml:space="preserve">
+    <value>正在加载游戏列表…</value>
+  </data>
+  <data name="Sync_NoSelection.Text" xml:space="preserve">
+    <value>未勾选任何游戏，将同步设置页中启用的游戏。</value>
+  </data>
+  <data name="Sync_Selection.Text" xml:space="preserve">
+    <value>本次将同步勾选的 {0} 个游戏。</value>
+  </data>
+  <data name="Sync_Elapsed.Text" xml:space="preserve">
+    <value>已用 {0}</value>
+  </data>
+  <data name="Sync_EtaEstimating.Text" xml:space="preserve">
+    <value>正在估算剩余时间…</value>
+  </data>
+  <data name="Sync_EtaAlmostDone.Text" xml:space="preserve">
+    <value>即将完成</value>
+  </data>
+  <data name="Sync_EtaRemaining.Text" xml:space="preserve">
+    <value>预计剩余 {0}</value>
+  </data>
+  <data name="Settings_ManualUpdate_Title.Text" xml:space="preserve">
+    <value>需要手动更新</value>
+  </data>
+  <data name="Settings_ManualUpdate_Body.Text" xml:space="preserve">
+    <value>无法自动更新：{0}
+
+可以在打开的下载页手动下载安装包并运行。</value>
+  </data>
+  <data name="Settings_ManualUpdate_Open.Text" xml:space="preserve">
+    <value>打开发布页</value>
+  </data>
+  <data name="Common_Cancel.Text" xml:space="preserve">
+    <value>取消</value>
   </data>
 </root>

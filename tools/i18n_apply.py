@@ -268,6 +268,12 @@ def main() -> int:
             if re.match(r"<\s*Window\b", tag):
                 continue
 
+            # ★ 幂等保护：已经注入过 x:Uid 的标签直接跳过。
+            #   否则重复运行本脚本会在同一标签里叠加第二个 x:Uid，直接编译失败
+            #   （WMC9997「x:Uid 是重复的特性名称」——本项目反复踩过，因为脚本需要多次运行）。
+            if re.search(r'\sx:Uid="', tag):
+                continue
+
             attrs = [am for am in attr_re.finditer(tag) if re.search(r"[\u4e00-\u9fff]", am.group(2))]
             if not attrs:
                 continue

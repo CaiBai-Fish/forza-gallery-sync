@@ -1,16 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
-    生成的界面文案文件（由 tools/i18n_apply.py 从 web/i18n-map.json 生成）。
-
-    ⚠️ 资源名必须带**属性后缀**：x:Uid="K" 时 WinUI 会去找 "K.Text" / "K.Content" /
-    "K.PlaceholderText" …（后缀就是它在 XAML 里要设的那个属性名）。
-    早期版本生成的是裸键 "K"，WinUI 找不到对应属性 → **所有 x:Uid 文案渲染成空白**
-    （截图一看就是导航栏和页面标题全没了），这是本项目踩过的最隐蔽的一次：
-    UI Automation 检查只会显示"文本为空"而不报错，所以必须实际截图确认。
-
-    后缀按原属性映射：<模块>_<属性>_<序号> 里的中段就是属性名，转小写后作后缀即可
-    （Tooltip / Header / OnContent / OffContent / PlaceholderText 都直接对应属性名）。
+    UI strings (English)
+    由 tools/i18n_apply.py（XAML 侧）与 tools/i18n_apply_cs.py（C# 侧）共同维护，
+    手工改动会被脚本覆盖。
   -->
   <data name="MainWindow_Title_00.Title" xml:space="preserve">
     <value>Forza Gallery Sync Console</value>
@@ -365,5 +358,238 @@
   </data>
   <data name="SyncPage_Text_15.Text" xml:space="preserve">
     <value>Failure details</value>
+  </data>
+  <data name="Main_Title.Text" xml:space="preserve">
+    <value>Forza Gallery Sync Console</value>
+  </data>
+  <data name="Main_Status_Syncing_Count.Text" xml:space="preserve">
+    <value>Syncing {0}/{1}</value>
+  </data>
+  <data name="Main_Status_Syncing.Text" xml:space="preserve">
+    <value>Syncing</value>
+  </data>
+  <data name="Main_Status_Cancelling.Text" xml:space="preserve">
+    <value>Cancelling</value>
+  </data>
+  <data name="Main_Account_SignedIn.Text" xml:space="preserve">
+    <value>Signed in</value>
+  </data>
+  <data name="Main_Account_TokenExpired.Text" xml:space="preserve">
+    <value>Token expired</value>
+  </data>
+  <data name="Main_Account_NotSignedIn.Text" xml:space="preserve">
+    <value>Not signed in</value>
+  </data>
+  <data name="Dash_Hero_NoPhotos.Text" xml:space="preserve">
+    <value>No photos synced yet</value>
+  </data>
+  <data name="Dash_Token_NotConfigured.Text" xml:space="preserve">
+    <value>Not configured</value>
+  </data>
+  <data name="Dash_Hero_NotSynced.Text" xml:space="preserve">
+    <value>No photos yet — sign in and run a sync</value>
+  </data>
+  <data name="Dash_Hero_Summary.Text" xml:space="preserve">
+    <value>From {0} games · covering {1} months</value>
+  </data>
+  <data name="Dash_Token_Missing.Text" xml:space="preserve">
+    <value>Token not configured</value>
+  </data>
+  <data name="Dash_Token_Expired.Text" xml:space="preserve">
+    <value>Token expired</value>
+  </data>
+  <data name="Dash_Token_Valid.Text" xml:space="preserve">
+    <value>Token valid</value>
+  </data>
+  <data name="Dash_Card_TotalPhotos.Text" xml:space="preserve">
+    <value>Total photos</value>
+  </data>
+  <data name="Dash_Card_CoverMonths.Text" xml:space="preserve">
+    <value>Covering {0} months</value>
+  </data>
+  <data name="Dash_Card_NoData.Text" xml:space="preserve">
+    <value>No data</value>
+  </data>
+  <data name="Dash_Card_SyncedGames.Text" xml:space="preserve">
+    <value>Synced games</value>
+  </data>
+  <data name="Dash_Card_PendingGames.Text" xml:space="preserve">
+    <value>{0} enabled games have no photos yet</value>
+  </data>
+  <data name="Dash_Card_AllGamesHavePhotos.Text" xml:space="preserve">
+    <value>All enabled games have photos</value>
+  </data>
+  <data name="Dash_Card_LastSync.Text" xml:space="preserve">
+    <value>Last sync</value>
+  </data>
+  <data name="Dash_Card_NeverSynced.Text" xml:space="preserve">
+    <value>Never synced</value>
+  </data>
+  <data name="Dash_Card_AccountStatus.Text" xml:space="preserve">
+    <value>Account status</value>
+  </data>
+  <data name="Dash_Card_TokenOk.Text" xml:space="preserve">
+    <value>Token works</value>
+  </data>
+  <data name="Dash_Card_GoSettings.Text" xml:space="preserve">
+    <value>Sign in from the Settings page</value>
+  </data>
+  <data name="Dash_Sync_Fetched.Text" xml:space="preserve">
+    <value>Fetched {0} · synced {1}</value>
+  </data>
+  <data name="Format_Unknown.Text" xml:space="preserve">
+    <value>unknown</value>
+  </data>
+  <data name="Format_HoursMinutes.Text" xml:space="preserve">
+    <value>{0} h {1} min</value>
+  </data>
+  <data name="Format_Minutes.Text" xml:space="preserve">
+    <value>{0} min</value>
+  </data>
+  <data name="Gallery_Filter_All.Text" xml:space="preserve">
+    <value>All</value>
+  </data>
+  <data name="Gallery_Detail_Untitled.Text" xml:space="preserve">
+    <value>Untitled</value>
+  </data>
+  <data name="Gallery_Detail_NoDescription.Text" xml:space="preserve">
+    <value>No description</value>
+  </data>
+  <data name="Gallery_Detail_Meta.Text" xml:space="preserve">
+    <value>{0} · uploaded {1} · downloaded {2}</value>
+  </data>
+  <data name="Settings_Config_Saved.Text" xml:space="preserve">
+    <value>Settings saved</value>
+  </data>
+  <data name="Settings_Token_Refreshed.Text" xml:space="preserve">
+    <value>Token refreshed</value>
+  </data>
+  <data name="Settings_Token_NotConfigured.Text" xml:space="preserve">
+    <value>Not configured</value>
+  </data>
+  <data name="Settings_Token_Expired.Text" xml:space="preserve">
+    <value>Expired</value>
+  </data>
+  <data name="Settings_Token_Valid.Text" xml:space="preserve">
+    <value>Valid</value>
+  </data>
+  <data name="Update_Checking.Text" xml:space="preserve">
+    <value>Checking for updates…</value>
+  </data>
+  <data name="Update_CheckFailed.Text" xml:space="preserve">
+    <value>Update check failed</value>
+  </data>
+  <data name="Update_CheckFailedDetail.Text" xml:space="preserve">
+    <value>Update check failed: {0}</value>
+  </data>
+  <data name="Update_FoundNew.Text" xml:space="preserve">
+    <value>New version v{0} available (current v{1})</value>
+  </data>
+  <data name="Update_UpToDate.Text" xml:space="preserve">
+    <value>Already up to date (v{0})</value>
+  </data>
+  <data name="Update_Preparing.Text" xml:space="preserve">
+    <value>Preparing to update to {0}…</value>
+  </data>
+  <data name="Update_IncrementalVerified.Text" xml:space="preserve">
+    <value>Incremental update verified, preparing to replace…</value>
+  </data>
+  <data name="Update_SimulateIncremental.Text" xml:space="preserve">
+    <value>Simulation (incremental): {0}</value>
+  </data>
+  <data name="Update_ExitingIncremental.Text" xml:space="preserve">
+    <value>Exiting to finish the incremental update…</value>
+  </data>
+  <data name="Update_DownloadingFull.Text" xml:space="preserve">
+    <value>Downloading full package {0}… {1:F0}%</value>
+  </data>
+  <data name="Update_DownloadingFullUnknown.Text" xml:space="preserve">
+    <value>Downloading full package…</value>
+  </data>
+  <data name="Update_SimulateBasic.Text" xml:space="preserve">
+    <value>Simulation: download and hash verified; {0}</value>
+  </data>
+  <data name="Update_FullVerified.Text" xml:space="preserve">
+    <value>Download complete and hash verified, preparing to replace…</value>
+  </data>
+  <data name="Update_Exiting.Text" xml:space="preserve">
+    <value>Exiting to finish the update…</value>
+  </data>
+  <data name="Update_Cancelled.Text" xml:space="preserve">
+    <value>Download cancelled.</value>
+  </data>
+  <data name="Update_InstalledMode.Text" xml:space="preserve">
+    <value>Installed build detected (recorded location: {0}); the installer will use it</value>
+  </data>
+  <data name="Update_PortableMode.Text" xml:space="preserve">
+    <value>Portable build detected; the installer will reinstall into {0}</value>
+  </data>
+  <data name="Update_DownloadingInstaller.Text" xml:space="preserve">
+    <value>Downloading installer {0}…</value>
+  </data>
+  <data name="Update_DownloadingInstallerPct.Text" xml:space="preserve">
+    <value>Downloading installer {0}… {1:F0}%</value>
+  </data>
+  <data name="Update_DownloadingInstallerUnknown.Text" xml:space="preserve">
+    <value>Downloading installer…</value>
+  </data>
+  <data name="Update_SimulateInstaller.Text" xml:space="preserve">
+    <value>Simulation (installer): download and hash verified; {0}</value>
+  </data>
+  <data name="Update_InstallerVerified.Text" xml:space="preserve">
+    <value>Installer verified; exiting to start installation…</value>
+  </data>
+  <data name="Update_ExitingForInstall.Text" xml:space="preserve">
+    <value>The app will exit to finish installing…</value>
+  </data>
+  <data name="Update_InstallerUnavailable.Text" xml:space="preserve">
+    <value>Installer unavailable; trying another method…</value>
+  </data>
+  <data name="Update_IncrementalUnavailable.Text" xml:space="preserve">
+    <value>Incremental update not applicable; using the full package…</value>
+  </data>
+  <data name="Settings_Login_OpeningBrowser.Text" xml:space="preserve">
+    <value>Opening the browser…</value>
+  </data>
+  <data name="Sync_NoRunningTask.Text" xml:space="preserve">
+    <value>No task is running</value>
+  </data>
+  <data name="Sync_FinishedAt.Text" xml:space="preserve">
+    <value>Finished at {0}</value>
+  </data>
+  <data name="Sync_LoadingGames.Text" xml:space="preserve">
+    <value>Loading the game list…</value>
+  </data>
+  <data name="Sync_NoSelection.Text" xml:space="preserve">
+    <value>No games selected; the games enabled in Settings will be synced.</value>
+  </data>
+  <data name="Sync_Selection.Text" xml:space="preserve">
+    <value>Will sync the {0} selected games.</value>
+  </data>
+  <data name="Sync_Elapsed.Text" xml:space="preserve">
+    <value>Elapsed {0}</value>
+  </data>
+  <data name="Sync_EtaEstimating.Text" xml:space="preserve">
+    <value>Estimating time remaining…</value>
+  </data>
+  <data name="Sync_EtaAlmostDone.Text" xml:space="preserve">
+    <value>Almost done</value>
+  </data>
+  <data name="Sync_EtaRemaining.Text" xml:space="preserve">
+    <value>{0} remaining</value>
+  </data>
+  <data name="Settings_ManualUpdate_Title.Text" xml:space="preserve">
+    <value>Manual update required</value>
+  </data>
+  <data name="Settings_ManualUpdate_Body.Text" xml:space="preserve">
+    <value>Cannot update automatically: {0}
+
+You can download and run the installer from the releases page.</value>
+  </data>
+  <data name="Settings_ManualUpdate_Open.Text" xml:space="preserve">
+    <value>Open releases page</value>
+  </data>
+  <data name="Common_Cancel.Text" xml:space="preserve">
+    <value>Cancel</value>
   </data>
 </root>

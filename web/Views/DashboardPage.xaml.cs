@@ -69,7 +69,7 @@ public sealed partial class DashboardPage : Page
         var session = _previewSession;
 
         // 1) 立即用缩略图把卡片铺好：框架先隐藏（随动画淡入），大图交给 Hero 图层"长大"。
-        PreviewTitle.Text = string.IsNullOrEmpty(item.Title) ? "无标题" : item.Title;
+        PreviewTitle.Text = string.IsNullOrEmpty(item.Title) ? StringLocalizer.Get("Gallery_Detail_Untitled") : item.Title;
         PreviewGame.Text = item.GameName;
         PreviewMeta.Text = $"{item.GameName} · 上传 {Format.Time(item.SubmissionTimeUtc)} · 下载 {Format.Time(item.DownloadedAt)}";
         PreviewPath.Text = string.IsNullOrEmpty(item.LocalPath) ? "—" : item.LocalPath;

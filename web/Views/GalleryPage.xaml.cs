@@ -326,13 +326,13 @@ public sealed partial class GalleryPage : Page
     /// <summary>把照片信息写入详情栏（元数据加载完成后会再填一次）。</summary>
     private void FillDetailFields(PhotoItemViewModel item)
     {
-        DetailTitle.Text = string.IsNullOrEmpty(item.Title) ? "无标题" : item.Title;
+        DetailTitle.Text = string.IsNullOrEmpty(item.Title) ? StringLocalizer.Get("Gallery_Detail_Untitled") : item.Title;
         DetailGame.Text = item.GameName;
         DetailPhotoId.Text = item.PhotoId;
         DetailSubmitted.Text = Format.Time(item.SubmissionTimeUtc);
         DetailDownloaded.Text = Format.Time(item.DownloadedAt);
         DetailPath.Text = string.IsNullOrEmpty(item.LocalPath) ? "—" : item.LocalPath;
-        DetailDesc.Text = string.IsNullOrEmpty(item.Description) ? "无描述" : item.Description;
+        DetailDesc.Text = string.IsNullOrEmpty(item.Description) ? StringLocalizer.Get("Gallery_Detail_NoDescription") : item.Description;
     }
 
     /// <summary>逐帧淡入，避免原图替换时出现生硬跳变。</summary>

@@ -33,7 +33,7 @@ public sealed partial class MainWindow : Window
         // 取不到资源时用下面的默认值兜底，**不要回退成键名**：窗口标题显示
         // "MainWindow_Title_00" 对用户毫无意义（这一点踩过），宁可退回中文默认标题。
         var title = StringLocalizer.Get("MainWindow_Title_00", "Title");
-        Title = title == "MainWindow_Title_00" ? "Forza Gallery Sync 控制台" : title;
+        Title = title == "MainWindow_Title_00" ? StringLocalizer.Get("Main_Title") : title;
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);
@@ -157,7 +157,7 @@ public sealed partial class MainWindow : Window
             TitleStatusIcon.Visibility = Visibility.Collapsed;
             TitleStatusText.Text = status.Done > 0 && status.Total > 0
                 ? $"同步中 {status.Done}/{status.Total}"
-                : "同步中";
+                : StringLocalizer.Get("Main_Status_Syncing");
         }
         else
         {
@@ -169,7 +169,7 @@ public sealed partial class MainWindow : Window
                 TitleStatusPanel.Visibility = Visibility.Visible;
                 TitleStatusIcon.Visibility = Visibility.Visible;
                 TitleStatusIcon.Glyph = "\uE711";
-                TitleStatusText.Text = "正在取消";
+                TitleStatusText.Text = StringLocalizer.Get("Main_Status_Cancelling");
             }
             else
             {
@@ -181,9 +181,9 @@ public sealed partial class MainWindow : Window
     /// <summary>页脚账号状态（由窗口轮询统一维护，页面无需调用）。</summary>
     private void SetAccountStatus(bool hasToken, bool expired)
     {
-        if (hasToken && !expired) SetAccount("已登录", "\uE77B", "AppSuccessBrush");
-        else if (hasToken) SetAccount("Token 已过期", "\uE7BA", "AppWarnBrush");
-        else SetAccount("未登录", "\uE7BA", "AppDangerBrush");
+        if (hasToken && !expired) SetAccount(StringLocalizer.Get("Main_Account_SignedIn"), "\uE77B", "AppSuccessBrush");
+        else if (hasToken) SetAccount(StringLocalizer.Get("Dash_Token_Expired"), "\uE7BA", "AppWarnBrush");
+        else SetAccount(StringLocalizer.Get("Main_Account_NotSignedIn"), "\uE7BA", "AppDangerBrush");
     }
 
     private void SetAccount(string text, string glyph, string brushKey)

@@ -17,7 +17,7 @@ public static class Format
     /// <summary>秒数 → 人类可读时长。</summary>
     public static string Duration(long? seconds)
     {
-        if (seconds is null) return "未知";
+        if (seconds is null) return StringLocalizer.Get("Format_Unknown");
         var s = seconds.Value;
         if (s >= 3600) return $"{s / 3600} 小时 {(s % 3600) / 60} 分";
         if (s >= 60) return $"{s / 60} 分钟";
