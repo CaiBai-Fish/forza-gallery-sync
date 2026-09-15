@@ -253,11 +253,11 @@ Authorization: Bearer <token>
 │   ├── sync.py                   # 同步编排
 │   ├── runner.py                 # 后台同步运行器（桌面端复用）
 │   ├── service.py                # 纯函数服务层（供 Python.NET 调用，无 HTTP）
-│   ├── updates.py                # 检查更新（读 CHANGELOG + 哈希清单）
+│   ├── updates.py                # 检查更新（五路版本探测 + 哈希清单定位）
 │   └── errors.py                 # 异常定义
 ├── tests/                        # pytest 单元测试
 ├── web/                          # 桌面应用（WinUI 3 + C# + Python.NET）
-│   ├── App.xaml(.cs)             # 应用入口
+│   ├── App.xaml(.cs)             # 应用入口（含单实例检查）
 │   ├── MainWindow.xaml(.cs)      # 主窗口：分组 NavigationView + 标题栏状态 + 页脚账号状态
 │   ├── Views/                    # 四个页面：总览 / 照片库 / 同步 / 设置
 │   ├── ViewModels/               # MVVM 视图模型（含 Hero 转场、进度计时）
@@ -265,6 +265,8 @@ Authorization: Bearer <token>
 │   ├── Services/                 # Python.NET 桥接（PythonHost / PyBridge / Logger）
 │   │   ├── HeroTransition.cs     # 共享元素（缩略图 ↔ 大图）转场
 │   │   ├── PhotoActions.cs       # 复制图片 / 用默认应用打开 / 定位文件
+│   │   ├── SingleInstance.cs     # 单实例：互斥体 + 广播唤醒已有窗口
+│   │   ├── AppVersion.cs         # 当前版本（从程序集信息读取）
 │   │   └── UpdateService.cs      # 自动更新：下载、哈希校验、替换重启
 │   ├── Converters/               # XAML 值转换器
 │   ├── Styles/Controls.xaml      # 主题资源：语义色 + 卡片 / 文本 / 按钮样式
