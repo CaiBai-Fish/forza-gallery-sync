@@ -9,6 +9,8 @@
 
 ## [未发布]
 
+## [1.0.4] - 2026-09-15
+
 ### 变更
 - **更新方式改为"下载官方安装程序并运行它"**（原先是在应用内解压覆盖程序目录）：
   - 点「下载并安装」直接下载 `ForzaGallerySync-<版本>-setup.exe`、校验 SHA256，
@@ -64,11 +66,23 @@
     也避免"一个小文件变了就整体回退完整包"。
   - 逐个文件做 SHA256 校验；任一环节不成立（无清单、版本不符、哈希不符、下载失败、
     本地缺失又无来源）都**自动回退完整包**，完整包那条路径与之前完全一致。
-  - 设置页可切换"优先增量更新"，默认开启。
   - 更新后的替换流程与完整包同构：增量包同样带 `ForzaGallerySync-<版本>-win-x64/` 顶层目录，
     "只覆盖、不删除"，并且不覆盖正在运行的更新脚本自身。
 
 ### 修复
+- **打包出的 Python 运行时缺少 `playwright`，浏览器登录功能不可用**（1.0.3 的包中招）：
+  没有 playwright 就无法调起浏览器完成登录。原因是运行时检查只"警告后继续"，
+  缺陷包一路发到了 Release。现在改为三层硬断言，任何一层失败都中止打包：
+  - 打包前用 `importlib.util.find_spec` 探测 8 个必需依赖（requests / urllib3 / certifi /
+    idna / charset_normalizer / playwright / greenlet / pyee），缺失直接 `throw` 并给出修复命令；
+  - 归档后正则断言关键条目在位（注意 zip 内真实路径是 `Lib\site-packages\playwright\driver\node.exe`，
+    分隔符是 `\`，正则必须写 `[\\/]`，否则会把齐备的依赖误报成缺失）；
+  - 交付包端到端验证：解压全新空目录并启动，`.runtime-id` 必须等于内嵌 zip 的 SHA-256，
+    再实际 `import playwright` 并用系统浏览器通道启动成功。
+  实测结果：`python-runtime.zip` 60.1 MB / 3312 条目（playwright 185 项、driver 118 项），
+  便携包 123.1 MB、安装包 113.9 MB，首次启动 8.1 秒解压完成，playwright 成功调起 Edge 153。
+- **旧运行时不会被自动替换的问题**：运行时目录内记录来源 zip 哈希的 `.runtime-id`
+  与当前内嵌 zip 不一致时会删除旧目录并全新解压，因此升级后无需手动清理旧运行时。
 - **卸载程序会以 `Access violation` 失败且什么都不删**：卸载时把复选框控件的引用留到
   `CurUninstallStepChanged` 里再读，而那个窗体此时已经被 `Free` 掉，引用成了悬空指针。
   改为在窗体释放**之前**把用户的选择存进布尔变量。
@@ -89,6 +103,9 @@
   配合 `FORZA_SYNC_INC_MANIFEST_FILE` / `FORZA_SYNC_INC_DOWNLOAD_BASE` 可指向本地服务，
   离线即可端到端验证（实测：本地下载 29.11 MB 增量包，完整包为 130 MB）。
 - `web/organize-release.ps1`：发布目录**校验**（裁剪是否生效、必需语言资源与程序文件是否在位）。
+- `tools/check_runtime_zip.py`：断言 `python-runtime.zip` 里登录所需依赖齐备（含 playwright 与 driver）。
+- `tools/check_extracted_runtime.py`：对**已解压**的运行时做真实导入与浏览器启动验证
+  （运行时目录不含 `python.exe`，脚本临时借用打包环境的解释器，验完删除）。
 
 ### 改进
 - **发布目录在编译期完成裁剪**：WinUI 自带的多语言资源有 83 个目录（166 个文件 / 3.3 MB），

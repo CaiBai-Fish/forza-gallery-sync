@@ -16,7 +16,7 @@
 #
 #  用法：
 #    powershell -ExecutionPolicy Bypass -File .\web\verify-installer.ps1 `
-#      -SetupPath web\dist\ForzaGallerySync-1.0.3-setup.exe
+#      -SetupPath web\dist\ForzaGallerySync-1.0.4-setup.exe
 #
 #  安全说明：脚本会在 %APPDATA%\forza-sync 下临时放一个**哨兵文件**用于断言数据是否被保留。
 #  该目录已存在时会先整目录备份、结束后还原；不存在则只在结束时清掉自己建的哨兵。
