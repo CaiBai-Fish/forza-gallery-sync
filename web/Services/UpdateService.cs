@@ -44,21 +44,21 @@ public static class UpdateService
     private static string ArtifactName(string version) => $"ForzaGallerySync-{version}-win-x64.zip";
 
     /// <summary>
-    /// 取得更新包的期望 SHA256。两个来源，按可靠性排序：
+    /// 取得更新包的期望 SHA256。两个来源，按"会不会被限流"排序：
     ///
-    /// 1. **GitHub Releases API 的 `digest` 字段**（优先）：这是发布平台自己算的哈希，
-    ///    与上传时的字节绑定，最权威；缺点是要走 API（匿名限流 60 次/小时）。
-    /// 2. **`hashes` 分支的清单**（兜底）：CI 自己算并发布到独立分支，
-    ///    用 raw URL 取静态文件，不消耗 API 配额；API 限流或不可用时仍能校验。
+    /// 1. **`hashes` 分支的清单**（优先）：CI 生成并发布到独立分支，用 raw URL 取静态文件，
+    ///    **不消耗 GitHub API 配额**——这是日常路径，不会因为限流而失败。
+    /// 2. **Releases API 的 `digest` 字段**（兜底）：平台计算、与上传字节绑定，同样权威，
+    ///    但要走 API（匿名 60 次/小时），因此只在前者不可用时使用。
     ///
     /// 两个来源都拿不到时返回 null，由调用方决定是否放行（当前策略：跳过校验但记告警）。
     /// </summary>
     public static async Task<string?> TryGetExpectedHashAsync(string version, CancellationToken token)
     {
-        var fromApi = await TryGetHashFromApiAsync(version, token);
-        if (fromApi is not null) return fromApi;
+        var fromManifest = await TryGetHashFromHashesBranchAsync(version, token);
+        if (fromManifest is not null) return fromManifest;
 
-        return await TryGetHashFromHashesBranchAsync(version, token);
+        return await TryGetHashFromApiAsync(version, token);
     }
 
     /// <summary>从 Releases API 的 digest 字段取哈希。</summary>

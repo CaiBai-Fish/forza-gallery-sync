@@ -179,22 +179,26 @@ jobs:
           Write-Host "--- hashes.json ---"
           Write-Host $json
 
-          # 推到 hashes 分支：先在独立目录建历史，再 force push 覆盖
+          # 推到 hashes 分支：先在独立目录建历史，再 force push 覆盖。
+          # 认证走 gh CLI 配置 git 凭证——直接把 token 拼进 URL 会被
+          # "Password authentication is not supported" 拒绝（实测在 runner 上失败）。
           $work = Join-Path $env:RUNNER_TEMP "hashes-branch"
           New-Item -ItemType Directory -Force -Path $work | Out-Null
           Push-Location $work
           git init --quiet
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config credential.helper ""
+          gh auth setup-git
           Copy-Item $jsonPath "hashes.json"
           git add hashes.json
           $tag = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } else { $version }
           git commit --quiet -m "hashes: $tag"
-          # 新 init 的仓库没有 checkout 的凭证配置，推送 URL 里带上 token
-          $host_ = $env:GITHUB_SERVER_URL -replace '^https://', ''
-          $remote = "https://x-access-token:$env:GITHUB_TOKEN@$host_/$env:GITHUB_REPOSITORY"
-          git push --quiet --force $remote "HEAD:refs/heads/hashes"
+          git remote add origin "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY"
+          git push --quiet --force origin "HEAD:refs/heads/hashes"
           Pop-Location
           Write-Host "hashes 分支已更新（$tag）"
+        env:
+          GH_TOKEN: ${{ github.token }}
 
 
