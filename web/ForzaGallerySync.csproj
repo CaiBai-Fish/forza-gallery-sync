@@ -40,6 +40,27 @@
   </ItemGroup>
 
   <!-- ============================================================
+        Assets 必须进发布目录
+        ============================================================
+        实测缺陷：<Content Include="Assets\**\*"/> 只让文件落进 bin，**进不了 publish 输出**
+        （publish 走 ResolvedFileToPublish，而 Content 项在 WinUI 项目里默认不参与发布）。
+        后果是发布版里没有 Assets\app-icon.png，主窗口标题栏那个
+        <Image Source="Assets/app-icon.png"/> 加载不到 —— 表现为图标缺失。
+
+        这里显式把 Assets 补进发布列表；用 RelativePath 保证落在 Assets\ 下。
+        -->
+  <Target Name="IncludeAssetsInPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <_AssetFile Include="$(MSBuildProjectDirectory)\Assets\**\*" />
+      <ResolvedFileToPublish Include="@(_AssetFile)">
+        <RelativePath>Assets\%(RecursiveDir)%(Filename)%(Extension)</RelativePath>
+        <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+      </ResolvedFileToPublish>
+    </ItemGroup>
+    <Message Importance="normal" Text="Assets 发布项：@(_AssetFile->Count()) 个文件 → Assets\" />
+  </Target>
+
+  <!-- ============================================================
         发布目录裁剪：去掉用不到的 WinUI 语言资源（编译期完成）
         ============================================================
         自包含发布时，Windows App SDK 的 Microsoft.WindowsAppSDK.SelfContained.targets

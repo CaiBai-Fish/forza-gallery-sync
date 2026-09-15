@@ -10,6 +10,17 @@
 ## [未发布]
 
 ### 新增
+- **标准 EXE 安装程序**：`ForzaGallerySync-<版本>-setup.exe`（Inno Setup 6，向导式、简中/英文界面）。
+  - **per-user 安装、免管理员**：装到 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，不弹 UAC；
+    该位置对当前用户可写，所以内置的"一键自动更新"（覆盖程序目录）在安装版上照常工作。
+  - 固定目录名（不带版本号）：升级即覆盖同一目录，不会堆出多个版本目录。
+  - 自带桌面 / 开始菜单快捷方式与标准卸载入口；卸载**保留用户数据**
+    （`%APPDATA%\forza-sync` 的配置与照片索引库），只删程序本体。
+  - 安装前由 Inno 自己提示关闭运行中的程序，不强行结束进程（用户可能正在同步）。
+  - 安装包同样进 `hashes` 分支清单，可校验 SHA256；CI 里用 chocolatey 装 Inno Setup 编译。
+  - 新增 `web/make-installer.ps1` 与 `web/Resources/installer.iss`；简体中文语言文件
+    `web/Resources/Languages/ChineseSimplified.isl` 随仓库提供（官方 Inno 不自带中文），
+    缺失时自动退回英文界面，不让构建失败。
 - **增量更新**：更新时不再每次都重下约 130 MB 的完整包，只下载**相对上一版真正变化**的文件。
   发布目录解压后约 269 MB，其中 Python 运行时 77 MB、.NET / Windows SDK 运行时 182 MB
   跨版本几乎不变；实测一次版本更新真正变化的只有应用自身那几个文件。
@@ -26,6 +37,11 @@
     "只覆盖、不删除"，并且不覆盖正在运行的更新脚本自身。
 
 ### 修复
+- **发布目录里缺 `Assets\`**：`<Content Include="Assets\**\*"/>` 只把图标文件放进 `bin`，
+  **进不了 publish 输出**（publish 走 `ResolvedFileToPublish`），导致发布版的
+  `Assets\app-icon.png` 不存在 —— 主窗口标题栏那个 `<Image Source="Assets/app-icon.png"/>`
+  在安装版/便携版里加载不到，表现为标题栏图标缺失。现在在 csproj 里显式把 Assets
+  补进 `ResolvedFileToPublish`，并在 CI 加断言防止回归。
 - 小文件的"是否需要更新"改为一律计算 SHA256：原先按体积走捷径，
   小文件改变内容而体积不变（改常量、改文本）会被静默漏掉。
 - 更新自检对"空增量包"补充失败判定：原先仅断言条目都在预期顶层目录下，

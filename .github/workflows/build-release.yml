@@ -115,16 +115,43 @@ jobs:
           powershell -ExecutionPolicy Bypass -File .\web\make-gui.ps1 `
             -PythonEnv $env:PY_HOME -Version $env:VERSION
 
+      # 标准 EXE 安装程序（Inno Setup）。装在 runner 自带的 chocolatey 里，
+      # 装完 ISCC.exe 在 Program Files (x86)\Inno Setup 6，make-installer.ps1 会自动定位。
+      - name: Install Inno Setup
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          $iscc = "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe"
+          if (-not (Test-Path $iscc)) { throw "ISCC.exe not found after install: $iscc" }
+          Write-Host "ISCC: $iscc"
+
+      - name: Build installer (EXE)
+        shell: pwsh
+        run: |
+          powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
+            -SourceDir "web/dist/ForzaGallerySync-$($env:VERSION)-win-x64" `
+            -Version $env:VERSION `
+            -OutputDir "web/dist"
+
       - name: Verify build outputs
         shell: pwsh
         run: |
           $gui = Get-ChildItem "web/dist/ForzaGallerySync-*-win-x64.zip" -ErrorAction SilentlyContinue
           $cli = Get-Item "cli-dist/forza-sync.exe" -ErrorAction SilentlyContinue
+          $setup = Get-Item "web/dist/ForzaGallerySync-$($env:VERSION)-setup.exe" -ErrorAction SilentlyContinue
           if (-not $gui) { throw "GUI release zip not found: web/dist/ForzaGallerySync-*-win-x64.zip" }
           if (-not $cli) { throw "CLI single-file not found: cli-dist/forza-sync.exe" }
-          foreach ($f in @($gui) + @($cli)) {
+          if (-not $setup) { throw "Installer not found: web/dist/ForzaGallerySync-$($env:VERSION)-setup.exe" }
+          foreach ($f in @($gui) + @($cli) + @($setup)) {
             Write-Host ("{0}  {1} MB" -f $f.Name, [math]::Round($f.Length / 1MB, 1))
           }
+
+          # Assets 必须进发布目录：主窗口标题栏的图标来自 Assets/app-icon.png，
+          # 而 <Content Include="Assets\**\*"/> 默认只落 bin、不进 publish（csproj 里已显式补进
+          # ResolvedFileToPublish，这条断言防止以后又被改回去）。
+          $icon = "web/dist/ForzaGallerySync-$($env:VERSION)-win-x64/Assets/app-icon.png"
+          if (-not (Test-Path $icon)) { throw "Assets/app-icon.png missing from release folder: $icon" }
+          Write-Host "Assets/app-icon.png present"
 
           # 内嵌运行时必须包含 forza_sync、requests 依赖链与 playwright
           # （playwright 缺失会导致打包版无法使用「浏览器一键登录」）
@@ -185,6 +212,7 @@ jobs:
           path: |
             cli-dist/forza-sync.exe
             web/dist/ForzaGallerySync-*-win-x64.zip
+            web/dist/ForzaGallerySync-*-setup.exe
 
       - name: Create / update GitHub Release (tags v* or manual dispatch)
         if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
@@ -195,6 +223,7 @@ jobs:
           body_path: ${{ env.RELEASE_BODY_PATH }}
           files: |
             cli-dist/forza-sync.exe
+            web/dist/ForzaGallerySync-*-setup.exe
             web/dist/ForzaGallerySync-*-win-x64.zip
             ${{ env.INC_DIR }}/ForzaGallerySync-inc-*.zip
             ${{ env.INC_MANIFEST }}
@@ -220,6 +249,9 @@ jobs:
           $manifestLines = @()
           $files = @()
           $files += Get-ChildItem "web/dist/ForzaGallerySync-*-win-x64.zip"
+          # 安装包也要进哈希清单：它是主要交付物之一，SHA256 必须可校验
+          $setup = Get-Item "web/dist/ForzaGallerySync-$version-setup.exe" -ErrorAction SilentlyContinue
+          if ($setup) { $files += $setup }
           $cli = Get-Item "cli-dist/forza-sync.exe" -ErrorAction SilentlyContinue
           if ($cli) { $files += $cli }
 

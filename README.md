@@ -20,6 +20,19 @@ Forza 系列游戏内拍摄的照片不会保存在本地，而是上传到 Forz
 
 ## 安装
 
+### 桌面版（普通用户）
+
+从 [Releases](https://github.com/CaiBai-Fish/forza-gallery-sync/releases) 下载并运行
+**`ForzaGallerySync-<版本>-setup.exe`**，向导式安装，**不需要管理员权限**。
+
+- 安装到 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，自带桌面与开始菜单快捷方式、标准卸载入口；
+- 目录内已包含全部运行时（.NET、Windows App SDK、Python），**无需预装任何东西**；
+- 程序目录对当前用户可写，所以内置的"一键自动更新"在安装版上正常工作。
+
+若更偏好免安装，同页面的 `ForzaGallerySync-<版本>-win-x64.zip` 解压即用，功能一致。
+
+### 开发环境
+
 要求 Python 3.9+（桌面版开发环境使用 3.13）。
 
 ```bash
@@ -105,6 +118,10 @@ WinUI 3 原生窗口（C# + XAML）通过 **Python.NET** 在进程内嵌入 Pyth
 设置页发现新版本后可一键更新，流程是：**确认对话框** → 下载官方发布包 →
 **SHA256 校验** → 退出应用 → 覆盖程序目录里的文件（只覆盖、不删除）→ 自动重启。
 
+> 自动更新是"覆盖程序目录"，所以**程序目录必须对当前用户可写**。安装程序把程序装在
+> `%LOCALAPPDATA%\Programs\ForzaGallerySync`（per-user、免管理员）正是为此；
+> 手动把发布目录放到 `Program Files` 下会导致只能手动更新。
+
 版本探测走**五路**（`api.github.com` 匿名限流 60 次/小时，实测经常 403，所以不能只看 API）：
 
 | 顺序 | 来源 | 说明 |
@@ -150,6 +167,24 @@ WinUI 3 原生窗口（C# + XAML）通过 **Python.NET** 在进程内嵌入 Pyth
 `RegisterWindowMessage` 广播唤醒已有窗口（最小化则先还原），然后显式结束自己的进程
 （`Environment.Exit(0)`，退出码 0）。`SetForegroundWindow` 被系统前台锁挡下时改用 Z 序置顶，
 并在日志里区分"被前台锁挡住"与"句柄失效"。
+
+### 安装程序
+
+`web/make-installer.ps1` 用 [Inno Setup 6](https://jrsoftware.org/isinfo.php) 把整个发布目录
+打成单个 `ForzaGallerySync-<版本>-setup.exe`（向导式、简中/英文界面）：
+
+```bash
+powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
+  -SourceDir web\dist\ForzaGallerySync-1.0.4-win-x64 -Version 1.0.4
+```
+
+- **per-user 安装**（`PrivilegesRequired=lowest`）：装到 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，
+  不弹 UAC。这个位置可写，所以安装版同样支持内置自动更新。
+- **固定目录名**（不带版本号）：升级就是覆盖同一个目录，不会堆出多个版本目录。
+- 安装前由 Inno 自己提示关闭运行中的程序（不强行结束进程——用户可能正在同步）。
+- 卸载**保留用户数据**（`%APPDATA%\forza-sync` 的配置与照片索引库），只删程序本体。
+- 简体中文语言文件在 `web/Resources/Languages/ChineseSimplified.isl`（官方 Inno 不自带中文）。
+  缺这个文件或应用图标时，脚本会自动退回英文 / 默认图标，不让构建失败。
 
 ### 已知限制
 
@@ -303,10 +338,15 @@ Authorization: Bearer <token>
 │   │   └── UpdateService.cs      # 自动更新：下载、哈希校验、替换重启
 │   ├── Converters/               # XAML 值转换器
 │   ├── Styles/Controls.xaml      # 主题资源：语义色 + 卡片 / 文本 / 按钮样式
-│   ├── Resources/                # 自动更新的替换脚本（内嵌为资源）
-│   ├── Assets/                   # 应用图标
+│   ├── Resources/                # 自动更新替换脚本 + 安装程序脚本（Inno Setup）
+│   │   ├── apply-update.ps1      # 自动更新时的替换脚本（内嵌为资源）
+│   │   ├── installer.iss         # EXE 安装程序定义
+│   │   └── Languages/            # 安装程序界面语言（官方 Inno 不含简体中文）
+│   ├── Assets/                   # 应用图标（发布目录里必须有，见 csproj 的 Assets 补发逻辑）
 │   ├── make-runtime.ps1          # 生成内嵌 Python 运行时（python-runtime.zip）
-│   ├── make-gui.ps1              # 打包桌面版
+│   ├── make-gui.ps1              # 打包桌面版（自包含目录 + zip）
+│   ├── make-installer.ps1        # 生成 EXE 安装程序
+│   ├── organize-release.ps1      # 发布目录校验（语言裁剪是否生效、关键文件在位）
 │   └── make-cli.ps1              # Nuitka 打包 CLI
 ├── .github/workflows/            # CI：构建与发布（含产物哈希发布）
 ├── CHANGELOG.md                  # 变更历史（Release 说明由 CI 从此文件生成）
