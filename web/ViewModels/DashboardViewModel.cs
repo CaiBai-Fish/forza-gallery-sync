@@ -234,35 +234,79 @@ public sealed class DashboardViewModel : ObservableObject
             AccentKey = TokenOk ? "AppSuccessBrush" : "AppDangerBrush",
         });
 
-        GameBars.Clear();
-        var byGame = d.Photos.ByGame;
-        var max = byGame.Count > 0 ? byGame.Max(x => x.Count) : 1;
-        foreach (var g in byGame.OrderByDescending(x => x.Count))
+        // ★ 只有数据真的变了才重建这两个列表。
+        //
+        // 为什么：UpdateStats 每 8 秒被轮询调用一次，而 Clear() + 重新 Add 会让
+        // ItemsControl 销毁并重建所有子项 —— ProgressBar 是新建的，于是每次刷新都从 0
+        // 重播一遍填充动画；用户看到的就是"隔一会儿进度条闪一下"（实测反馈）。
+        // 数量与构成没变时直接跳过重建，进度条就不会重播；真的变了才重建（此时重播是合理的）。
+        if (BarsChanged(GameBars, d.Photos.ByGame))
         {
-            GameBars.Add(new GameBarViewModel
+            // 只在真的重建时记一条：排查"进度条刷新时闪一下"这类问题就靠它 ——
+            // 正常待机时这条日志不该反复出现（每 8 秒轮询一次）。
+            Logger.Info($"总览：按游戏分布列表重建（{d.Photos.ByGame.Count} 项）");
+            GameBars.Clear();
+            var byGame = d.Photos.ByGame;
+            var max = byGame.Count > 0 ? byGame.Max(x => x.Count) : 1;
+            foreach (var g in byGame.OrderByDescending(x => x.Count))
             {
-                Name = UseGames.Name(g.Game),
-                Code = g.Game,
-                Count = g.Count,
-                // 最小 4% 保证极少量数据也能看到进度条。
-                Percent = Math.Max(4, (double)g.Count / max * 100),
-            });
+                GameBars.Add(new GameBarViewModel
+                {
+                    Name = UseGames.Name(g.Game),
+                    Code = g.Game,
+                    Count = g.Count,
+                    // 最小 4% 保证极少量数据也能看到进度条。
+                    Percent = Math.Max(4, (double)g.Count / max * 100),
+                });
+            }
+            OnPropertyChanged(nameof(HasGameBars));
         }
-        OnPropertyChanged(nameof(HasGameBars));
 
-        SyncRows.Clear();
-        foreach (var s in d.SyncState.OrderByDescending(s => s.LastSyncAt ?? "", StringComparer.Ordinal))
+        if (RowsChanged(SyncRows, d.SyncState))
         {
-            SyncRows.Add(new SyncRowViewModel
+            SyncRows.Clear();
+            foreach (var s in d.SyncState.OrderByDescending(s => s.LastSyncAt ?? "", StringComparer.Ordinal))
             {
-                GameName = UseGames.Name(s.Game),
-                LastSyncAt = Format.Time(s.LastSyncAt),
-                Sub = $"拉取 {s.TotalRecords} 条 · 已同步 {s.SyncedRecords} 条",
-            });
+                SyncRows.Add(new SyncRowViewModel
+                {
+                    GameName = UseGames.Name(s.Game),
+                    LastSyncAt = Format.Time(s.LastSyncAt),
+                    Sub = StringLocalizer.Format("Dash_Sync_Fetched", s.TotalRecords, s.SyncedRecords),
+                });
+            }
+            OnPropertyChanged(nameof(HasSyncRows));
         }
-        OnPropertyChanged(nameof(HasSyncRows));
 
         OnPropertyChanged(nameof(TokenNeedsAttention));
+    }
+
+    /// <summary>按游戏分布是否与当前列表一致（游戏与数量都没变就不重建）。</summary>
+    private static bool BarsChanged(ObservableCollection<GameBarViewModel> current, List<PhotoCount> next)
+    {
+        if (current.Count != next.Count) return true;
+
+        // 后端按数量降序返回，这里按同样的顺序逐项比较
+        var ordered = next.OrderByDescending(x => x.Count).ToList();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            if (current[i].Code != ordered[i].Game || current[i].Count != ordered[i].Count) return true;
+        }
+        return false;
+    }
+
+    /// <summary>最近同步记录是否一致（游戏与时间都没变就不重建）。</summary>
+    private static bool RowsChanged(ObservableCollection<SyncRowViewModel> current, List<SyncStateItem> next)
+    {
+        var meaningful = next.Where(s => !string.IsNullOrEmpty(s.LastSyncAt))
+                             .OrderByDescending(s => s.LastSyncAt, StringComparer.Ordinal)
+                             .ToList();
+        if (current.Count != meaningful.Count) return true;
+
+        for (var i = 0; i < meaningful.Count; i++)
+        {
+            if (current[i].LastSyncAt != Format.Time(meaningful[i].LastSyncAt)) return true;
+        }
+        return false;
     }
 
     /// <summary>加载最新的若干张照片（缩略图），点击可查看大图。</summary>
