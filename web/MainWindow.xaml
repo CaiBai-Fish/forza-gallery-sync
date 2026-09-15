@@ -1,8 +1,7 @@
-<Window
+<Window x:Uid="MainWindow_Title_00"
     x:Class="ForzaGallerySync.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-    Title="Forza Gallery Sync 控制台">
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <Grid x:Name="RootGrid">
         <Grid.RowDefinitions>
@@ -59,30 +58,30 @@
 
             <NavigationView.MenuItems>
                 <!-- 组 1：浏览与统计 -->
-                <NavigationViewItemHeader Content="图库" />
+                <NavigationViewItemHeader x:Uid="MainWindow_Content_00" />
 
-                <NavigationViewItem Content="总览" Tag="dashboard">
+                <NavigationViewItem x:Uid="MainWindow_Content_01" Tag="dashboard">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE80F;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
-                <NavigationViewItem Content="照片库" Tag="gallery">
+                <NavigationViewItem x:Uid="MainWindow_Content_02" Tag="gallery">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE8B9;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
                 <!-- 组 2：任务与配置 -->
-                <NavigationViewItemHeader Content="任务" />
+                <NavigationViewItemHeader x:Uid="MainWindow_Content_03" />
 
-                <NavigationViewItem Content="同步" Tag="sync">
+                <NavigationViewItem x:Uid="MainWindow_Content_04" Tag="sync">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE895;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
 
-                <NavigationViewItem Content="设置" Tag="settings">
+                <NavigationViewItem x:Uid="MainWindow_Content_05" Tag="settings">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE713;" />
                     </NavigationViewItem.Icon>
@@ -91,8 +90,7 @@
 
             <!-- 页脚：账号状态常驻显示，点击直达设置 -->
             <NavigationView.FooterMenuItems>
-                <NavigationViewItem x:Name="AccountItem"
-                                    Content="未登录"
+                <NavigationViewItem x:Uid="MainWindow_Content_06" x:Name="AccountItem"
                                     Tag="settings"
                                     ToolTipService.ToolTip="点击前往设置页配置 Token">
                     <NavigationViewItem.Icon>

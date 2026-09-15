@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    生成的界面文案文件（由 tools/i18n_apply.py 从 web/i18n-map.json 生成）。
+    键名规则：<模块>_<属性>_<序号>，与 Strings/<其它语言>/Resources.resw 必须一一对应。
+
+    ⚠️ 不要手工只改一个语言：中英两侧要同步改。
+    ⚠️ 新增界面文案时，重新跑一遍 tools/i18n_apply.py（它会从 XAML 重新抽取并补键）。
+  -->
+  <data name="MainWindow_Title_00" xml:space="preserve">
+    <value>Forza Gallery Sync 控制台</value>
+  </data>
+  <data name="MainWindow_Content_00" xml:space="preserve">
+    <value>图库</value>
+  </data>
+  <data name="MainWindow_Content_01" xml:space="preserve">
+    <value>总览</value>
+  </data>
+  <data name="MainWindow_Content_02" xml:space="preserve">
+    <value>照片库</value>
+  </data>
+  <data name="MainWindow_Content_03" xml:space="preserve">
+    <value>任务</value>
+  </data>
+  <data name="MainWindow_Content_04" xml:space="preserve">
+    <value>同步</value>
+  </data>
+  <data name="MainWindow_Content_05" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="MainWindow_Content_06" xml:space="preserve">
+    <value>未登录</value>
+  </data>
+  <data name="MainWindow_Tooltip_00" xml:space="preserve">
+    <value>点击前往设置页配置 Token</value>
+  </data>
+  <data name="DashboardPage_Text_00" xml:space="preserve">
+    <value>总览</value>
+  </data>
+  <data name="DashboardPage_Text_01" xml:space="preserve">
+    <value>已同步照片的统计概览；同步参数与账号配置在「同步」「设置」页。</value>
+  </data>
+  <data name="DashboardPage_Tooltip_00" xml:space="preserve">
+    <value>重新加载统计</value>
+  </data>
+  <data name="DashboardPage_Text_02" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="DashboardPage_Text_03" xml:space="preserve">
+    <value>前往同步</value>
+  </data>
+  <data name="DashboardPage_Title_00" xml:space="preserve">
+    <value>加载统计失败</value>
+  </data>
+  <data name="DashboardPage_Title_01" xml:space="preserve">
+    <value>账号尚未就绪</value>
+  </data>
+  <data name="DashboardPage_Content_00" xml:space="preserve">
+    <value>前往设置</value>
+  </data>
+  <data name="DashboardPage_Text_04" xml:space="preserve">
+    <value>照片总量</value>
+  </data>
+  <data name="DashboardPage_Text_05" xml:space="preserve">
+    <value>最近同步</value>
+  </data>
+  <data name="DashboardPage_Text_06" xml:space="preserve">
+    <value>浏览照片库</value>
+  </data>
+  <data name="DashboardPage_Text_07" xml:space="preserve">
+    <value>按游戏分布</value>
+  </data>
+  <data name="DashboardPage_Text_08" xml:space="preserve">
+    <value>暂无照片记录，先执行一次同步</value>
+  </data>
+  <data name="DashboardPage_Text_09" xml:space="preserve">
+    <value>最近同步</value>
+  </data>
+  <data name="DashboardPage_Text_10" xml:space="preserve">
+    <value>还没有同步记录</value>
+  </data>
+  <data name="DashboardPage_Text_11" xml:space="preserve">
+    <value>最新照片</value>
+  </data>
+  <data name="DashboardPage_Content_01" xml:space="preserve">
+    <value>查看全部</value>
+  </data>
+  <data name="DashboardPage_Text_12" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="DashboardPage_Text_13" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="DashboardPage_Text_14" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="DashboardPage_Text_15" xml:space="preserve">
+    <value>{x:Bind Title, FallbackValue='无标题'}</value>
+  </data>
+  <data name="DashboardPage_Text_16" xml:space="preserve">
+    <value>同步后这里会显示最新的照片</value>
+  </data>
+  <data name="DashboardPage_Tooltip_01" xml:space="preserve">
+    <value>关闭预览</value>
+  </data>
+  <data name="DashboardPage_Text_17" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="DashboardPage_Text_18" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="DashboardPage_Text_19" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="DashboardPage_Text_20" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="DashboardPage_Text_21" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="GalleryPage_Tooltip_00" xml:space="preserve">
+    <value>返回照片库</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_00" xml:space="preserve">
+    <value>搜索标题 / ID / 游戏</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_01" xml:space="preserve">
+    <value>全部游戏</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_02" xml:space="preserve">
+    <value>全部月份</value>
+  </data>
+  <data name="GalleryPage_Tooltip_01" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="GalleryPage_Tooltip_02" xml:space="preserve">
+    <value>在资源管理器中打开下载目录</value>
+  </data>
+  <data name="GalleryPage_Text_00" xml:space="preserve">
+    <value>{x:Bind Title, FallbackValue='无标题'}</value>
+  </data>
+  <data name="GalleryPage_Text_01" xml:space="preserve">
+    <value>查看详情</value>
+  </data>
+  <data name="GalleryPage_Text_02" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="GalleryPage_Text_03" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="GalleryPage_Text_04" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="GalleryPage_Text_05" xml:space="preserve">
+    <value>没有找到照片</value>
+  </data>
+  <data name="GalleryPage_Text_06" xml:space="preserve">
+    <value>换个筛选条件，或先前往「同步」页拉取照片。</value>
+  </data>
+  <data name="GalleryPage_Tooltip_03" xml:space="preserve">
+    <value>上一页</value>
+  </data>
+  <data name="GalleryPage_Tooltip_04" xml:space="preserve">
+    <value>下一页</value>
+  </data>
+  <data name="GalleryPage_Text_07" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="GalleryPage_Text_08" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="GalleryPage_Text_09" xml:space="preserve">
+    <value>打开所在文件夹</value>
+  </data>
+  <data name="GalleryPage_Tooltip_05" xml:space="preserve">
+    <value>显示 / 收起照片信息</value>
+  </data>
+  <data name="GalleryPage_Text_10" xml:space="preserve">
+    <value>上传时间</value>
+  </data>
+  <data name="GalleryPage_Text_11" xml:space="preserve">
+    <value>下载时间</value>
+  </data>
+  <data name="GalleryPage_Text_12" xml:space="preserve">
+    <value>照片 ID</value>
+  </data>
+  <data name="GalleryPage_Text_13" xml:space="preserve">
+    <value>本地路径</value>
+  </data>
+  <data name="GalleryPage_Text_14" xml:space="preserve">
+    <value>描述</value>
+  </data>
+  <data name="GalleryPage_Text_15" xml:space="preserve">
+    <value>复制图片</value>
+  </data>
+  <data name="GalleryPage_Text_16" xml:space="preserve">
+    <value>用默认应用打开</value>
+  </data>
+  <data name="SettingsPage_Text_00" xml:space="preserve">
+    <value>设置</value>
+  </data>
+  <data name="SettingsPage_Text_01" xml:space="preserve">
+    <value>账号登录、存储位置、网络与并发等全局配置。</value>
+  </data>
+  <data name="SettingsPage_Text_02" xml:space="preserve">
+    <value>账号与 Token</value>
+  </data>
+  <data name="SettingsPage_Text_03" xml:space="preserve">
+    <value>浏览器一键登录</value>
+  </data>
+  <data name="SettingsPage_Text_04" xml:space="preserve">
+    <value>刷新 Token</value>
+  </data>
+  <data name="SettingsPage_Text_05" xml:space="preserve">
+    <value>在弹出窗口中登录 Xbox / Microsoft 账号（支持两步验证），登录成功后 Token 会自动保存。</value>
+  </data>
+  <data name="SettingsPage_Text_06" xml:space="preserve">
+    <value>存储</value>
+  </data>
+  <data name="SettingsPage_Text_07" xml:space="preserve">
+    <value>下载目录</value>
+  </data>
+  <data name="SettingsPage_Text_08" xml:space="preserve">
+    <value>选择…</value>
+  </data>
+  <data name="SettingsPage_Text_09" xml:space="preserve">
+    <value>数据库</value>
+  </data>
+  <data name="SettingsPage_Text_10" xml:space="preserve">
+    <value>配置文件</value>
+  </data>
+  <data name="SettingsPage_Text_11" xml:space="preserve">
+    <value>网络与并发</value>
+  </data>
+  <data name="SettingsPage_Text_12" xml:space="preserve">
+    <value>每页数量</value>
+  </data>
+  <data name="SettingsPage_Text_13" xml:space="preserve">
+    <value>分页方式</value>
+  </data>
+  <data name="SettingsPage_Text_14" xml:space="preserve">
+    <value>并发线程数</value>
+  </data>
+  <data name="SettingsPage_Text_15" xml:space="preserve">
+    <value>失败重试次数</value>
+  </data>
+  <data name="SettingsPage_Text_16" xml:space="preserve">
+    <value>超时（秒）</value>
+  </data>
+  <data name="SettingsPage_Header_00" xml:space="preserve">
+    <value>验证 SSL 证书</value>
+  </data>
+  <data name="SettingsPage_OnContent_00" xml:space="preserve">
+    <value>正常校验</value>
+  </data>
+  <data name="SettingsPage_OffContent_00" xml:space="preserve">
+    <value>关闭（自签名证书时可绕过）</value>
+  </data>
+  <data name="SettingsPage_Text_17" xml:space="preserve">
+    <value>启用游戏</value>
+  </data>
+  <data name="SettingsPage_Text_18" xml:space="preserve">
+    <value>这里是默认同步范围；「同步」页可为单次任务临时改选。</value>
+  </data>
+  <data name="SettingsPage_Text_19" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="SettingsPage_Text_20" xml:space="preserve">
+    <value>重新加载</value>
+  </data>
+  <data name="SettingsPage_Text_21" xml:space="preserve">
+    <value>关于与更新</value>
+  </data>
+  <data name="SettingsPage_Text_22" xml:space="preserve">
+    <value>当前版本</value>
+  </data>
+  <data name="SettingsPage_Text_23" xml:space="preserve">
+    <value>检查更新</value>
+  </data>
+  <data name="SettingsPage_Text_24" xml:space="preserve">
+    <value>下载并更新</value>
+  </data>
+  <data name="SettingsPage_Header_01" xml:space="preserve">
+    <value>更新失败时回退增量更新</value>
+  </data>
+  <data name="SettingsPage_OnContent_01" xml:space="preserve">
+    <value>只下载变化的文件</value>
+  </data>
+  <data name="SettingsPage_OffContent_01" xml:space="preserve">
+    <value>下载完整包</value>
+  </data>
+  <data name="SettingsPage_Text_25" xml:space="preserve">
+    <value>点「下载并安装」会直接下载官方安装程序、校验 SHA256，然后退出本程序静默安装，装完自动启动新版本。免安装版装回当前目录保持免安装，安装版更新到原安装目录。安装程序不可用时自动回退到增量更新或完整包。</value>
+  </data>
+  <data name="SettingsPage_Content_00" xml:space="preserve">
+    <value>打开下载页</value>
+  </data>
+  <data name="SyncPage_Text_00" xml:space="preserve">
+    <value>同步</value>
+  </data>
+  <data name="SyncPage_Text_01" xml:space="preserve">
+    <value>选择本次要处理的游戏并启动同步；下载目录、并发等全局配置在「设置」页。</value>
+  </data>
+  <data name="SyncPage_Text_02" xml:space="preserve">
+    <value>本次同步的游戏</value>
+  </data>
+  <data name="SyncPage_Text_03" xml:space="preserve">
+    <value>照片数量上限</value>
+  </data>
+  <data name="SyncPage_PlaceholderText_00" xml:space="preserve">
+    <value>留空表示不限制</value>
+  </data>
+  <data name="SyncPage_Text_04" xml:space="preserve">
+    <value>可先只处理少量照片，用来验证配置是否正确。</value>
+  </data>
+  <data name="SyncPage_Header_00" xml:space="preserve">
+    <value>强制重新下载</value>
+  </data>
+  <data name="SyncPage_OnContent_00" xml:space="preserve">
+    <value>覆盖本地已存在的文件</value>
+  </data>
+  <data name="SyncPage_OffContent_00" xml:space="preserve">
+    <value>跳过已下载的照片</value>
+  </data>
+  <data name="SyncPage_Text_05" xml:space="preserve">
+    <value>开始同步</value>
+  </data>
+  <data name="SyncPage_Text_06" xml:space="preserve">
+    <value>停止</value>
+  </data>
+  <data name="SyncPage_Title_00" xml:space="preserve">
+    <value>操作失败</value>
+  </data>
+  <data name="SyncPage_Text_07" xml:space="preserve">
+    <value>同步进度</value>
+  </data>
+  <data name="SyncPage_Text_08" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="SyncPage_Text_09" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="SyncPage_Text_10" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="SyncPage_Text_11" xml:space="preserve">
+    <value>同步进度</value>
+  </data>
+  <data name="SyncPage_Text_12" xml:space="preserve">
+    <value>新增</value>
+  </data>
+  <data name="SyncPage_Text_13" xml:space="preserve">
+    <value>跳过</value>
+  </data>
+  <data name="SyncPage_Text_14" xml:space="preserve">
+    <value>失败</value>
+  </data>
+  <data name="SyncPage_Title_01" xml:space="preserve">
+    <value>正在取消</value>
+  </data>
+  <data name="SyncPage_Text_15" xml:space="preserve">
+    <value>失败明细</value>
+  </data>
+</root>

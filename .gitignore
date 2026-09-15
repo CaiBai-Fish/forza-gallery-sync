@@ -36,3 +36,7 @@ web-legacy/runtime/
 web-legacy/app-icon.png
 web-legacy/src-tauri/target/
 web-legacy/src-tauri/gen/
+
+# i18n 改造脚本的中间产物（键映射 / 待办清单），由 tools/i18n_apply.py 生成
+web/i18n-map.json
+web/i18n-pending.json

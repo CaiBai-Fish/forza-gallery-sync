@@ -1,0 +1,364 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!--
+    生成的界面文案文件（由 tools/i18n_apply.py 从 web/i18n-map.json 生成）。
+    键名规则：<模块>_<属性>_<序号>，与 Strings/<其它语言>/Resources.resw 必须一一对应。
+
+    ⚠️ 不要手工只改一个语言：中英两侧要同步改。
+    ⚠️ 新增界面文案时，重新跑一遍 tools/i18n_apply.py（它会从 XAML 重新抽取并补键）。
+  -->
+  <data name="MainWindow_Title_00" xml:space="preserve">
+    <value>Forza Gallery Sync Console</value>
+  </data>
+  <data name="MainWindow_Content_00" xml:space="preserve">
+    <value>Library</value>
+  </data>
+  <data name="MainWindow_Content_01" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="MainWindow_Content_02" xml:space="preserve">
+    <value>Photos</value>
+  </data>
+  <data name="MainWindow_Content_03" xml:space="preserve">
+    <value>Tasks</value>
+  </data>
+  <data name="MainWindow_Content_04" xml:space="preserve">
+    <value>Sync</value>
+  </data>
+  <data name="MainWindow_Content_05" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="MainWindow_Content_06" xml:space="preserve">
+    <value>Not signed in</value>
+  </data>
+  <data name="MainWindow_Tooltip_00" xml:space="preserve">
+    <value>Open Settings to configure the token</value>
+  </data>
+  <data name="DashboardPage_Text_00" xml:space="preserve">
+    <value>Overview</value>
+  </data>
+  <data name="DashboardPage_Text_01" xml:space="preserve">
+    <value>Statistics for synced photos. Sync options and account settings live in the Sync and Settings pages.</value>
+  </data>
+  <data name="DashboardPage_Tooltip_00" xml:space="preserve">
+    <value>Reload statistics</value>
+  </data>
+  <data name="DashboardPage_Text_02" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="DashboardPage_Text_03" xml:space="preserve">
+    <value>Go to Sync</value>
+  </data>
+  <data name="DashboardPage_Title_00" xml:space="preserve">
+    <value>Failed to load statistics</value>
+  </data>
+  <data name="DashboardPage_Title_01" xml:space="preserve">
+    <value>Account not ready</value>
+  </data>
+  <data name="DashboardPage_Content_00" xml:space="preserve">
+    <value>Go to Settings</value>
+  </data>
+  <data name="DashboardPage_Text_04" xml:space="preserve">
+    <value>Total photos</value>
+  </data>
+  <data name="DashboardPage_Text_05" xml:space="preserve">
+    <value>Last sync</value>
+  </data>
+  <data name="DashboardPage_Text_06" xml:space="preserve">
+    <value>Browse library</value>
+  </data>
+  <data name="DashboardPage_Text_07" xml:space="preserve">
+    <value>By game</value>
+  </data>
+  <data name="DashboardPage_Text_08" xml:space="preserve">
+    <value>No photos yet — run a sync first</value>
+  </data>
+  <data name="DashboardPage_Text_09" xml:space="preserve">
+    <value>Last sync</value>
+  </data>
+  <data name="DashboardPage_Text_10" xml:space="preserve">
+    <value>No sync history yet</value>
+  </data>
+  <data name="DashboardPage_Text_11" xml:space="preserve">
+    <value>Latest photos</value>
+  </data>
+  <data name="DashboardPage_Content_01" xml:space="preserve">
+    <value>View all</value>
+  </data>
+  <data name="DashboardPage_Text_12" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="DashboardPage_Text_13" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="DashboardPage_Text_14" xml:space="preserve">
+    <value>Open containing folder</value>
+  </data>
+  <data name="DashboardPage_Text_15" xml:space="preserve">
+    <value>Untitled</value>
+  </data>
+  <data name="DashboardPage_Text_16" xml:space="preserve">
+    <value>Latest photos will appear here after a sync</value>
+  </data>
+  <data name="DashboardPage_Tooltip_01" xml:space="preserve">
+    <value>Close preview</value>
+  </data>
+  <data name="DashboardPage_Text_17" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="DashboardPage_Text_18" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="DashboardPage_Text_19" xml:space="preserve">
+    <value>Open containing folder</value>
+  </data>
+  <data name="DashboardPage_Text_20" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="DashboardPage_Text_21" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="GalleryPage_Tooltip_00" xml:space="preserve">
+    <value>Back to library</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_00" xml:space="preserve">
+    <value>Search title / ID / game</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_01" xml:space="preserve">
+    <value>All games</value>
+  </data>
+  <data name="GalleryPage_PlaceholderText_02" xml:space="preserve">
+    <value>All months</value>
+  </data>
+  <data name="GalleryPage_Tooltip_01" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="GalleryPage_Tooltip_02" xml:space="preserve">
+    <value>Open the download folder in File Explorer</value>
+  </data>
+  <data name="GalleryPage_Text_00" xml:space="preserve">
+    <value>Untitled</value>
+  </data>
+  <data name="GalleryPage_Text_01" xml:space="preserve">
+    <value>View details</value>
+  </data>
+  <data name="GalleryPage_Text_02" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="GalleryPage_Text_03" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="GalleryPage_Text_04" xml:space="preserve">
+    <value>Open containing folder</value>
+  </data>
+  <data name="GalleryPage_Text_05" xml:space="preserve">
+    <value>No photos found</value>
+  </data>
+  <data name="GalleryPage_Text_06" xml:space="preserve">
+    <value>Try different filters, or go to the Sync page to fetch photos.</value>
+  </data>
+  <data name="GalleryPage_Tooltip_03" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="GalleryPage_Tooltip_04" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="GalleryPage_Text_07" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="GalleryPage_Text_08" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="GalleryPage_Text_09" xml:space="preserve">
+    <value>Open containing folder</value>
+  </data>
+  <data name="GalleryPage_Tooltip_05" xml:space="preserve">
+    <value>Show / hide photo details</value>
+  </data>
+  <data name="GalleryPage_Text_10" xml:space="preserve">
+    <value>Uploaded</value>
+  </data>
+  <data name="GalleryPage_Text_11" xml:space="preserve">
+    <value>Downloaded</value>
+  </data>
+  <data name="GalleryPage_Text_12" xml:space="preserve">
+    <value>Photo ID</value>
+  </data>
+  <data name="GalleryPage_Text_13" xml:space="preserve">
+    <value>Local path</value>
+  </data>
+  <data name="GalleryPage_Text_14" xml:space="preserve">
+    <value>Description</value>
+  </data>
+  <data name="GalleryPage_Text_15" xml:space="preserve">
+    <value>Copy image</value>
+  </data>
+  <data name="GalleryPage_Text_16" xml:space="preserve">
+    <value>Open with default app</value>
+  </data>
+  <data name="SettingsPage_Text_00" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="SettingsPage_Text_01" xml:space="preserve">
+    <value>Global configuration for account, storage, network and concurrency.</value>
+  </data>
+  <data name="SettingsPage_Text_02" xml:space="preserve">
+    <value>Account and token</value>
+  </data>
+  <data name="SettingsPage_Text_03" xml:space="preserve">
+    <value>Sign in with browser</value>
+  </data>
+  <data name="SettingsPage_Text_04" xml:space="preserve">
+    <value>Refresh token</value>
+  </data>
+  <data name="SettingsPage_Text_05" xml:space="preserve">
+    <value>Sign in to your Xbox / Microsoft account in the popup window (two-step verification supported). The token is saved automatically.</value>
+  </data>
+  <data name="SettingsPage_Text_06" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="SettingsPage_Text_07" xml:space="preserve">
+    <value>Download folder</value>
+  </data>
+  <data name="SettingsPage_Text_08" xml:space="preserve">
+    <value>Choose…</value>
+  </data>
+  <data name="SettingsPage_Text_09" xml:space="preserve">
+    <value>Database</value>
+  </data>
+  <data name="SettingsPage_Text_10" xml:space="preserve">
+    <value>Config file</value>
+  </data>
+  <data name="SettingsPage_Text_11" xml:space="preserve">
+    <value>Network and concurrency</value>
+  </data>
+  <data name="SettingsPage_Text_12" xml:space="preserve">
+    <value>Page size</value>
+  </data>
+  <data name="SettingsPage_Text_13" xml:space="preserve">
+    <value>Pagination mode</value>
+  </data>
+  <data name="SettingsPage_Text_14" xml:space="preserve">
+    <value>Concurrent threads</value>
+  </data>
+  <data name="SettingsPage_Text_15" xml:space="preserve">
+    <value>Retry attempts</value>
+  </data>
+  <data name="SettingsPage_Text_16" xml:space="preserve">
+    <value>Timeout (seconds)</value>
+  </data>
+  <data name="SettingsPage_Header_00" xml:space="preserve">
+    <value>Verify SSL certificates</value>
+  </data>
+  <data name="SettingsPage_OnContent_00" xml:space="preserve">
+    <value>Verify normally</value>
+  </data>
+  <data name="SettingsPage_OffContent_00" xml:space="preserve">
+    <value>Disabled (bypass for self-signed certificates)</value>
+  </data>
+  <data name="SettingsPage_Text_17" xml:space="preserve">
+    <value>Enabled games</value>
+  </data>
+  <data name="SettingsPage_Text_18" xml:space="preserve">
+    <value>This is the default sync scope; the Sync page can override it per run.</value>
+  </data>
+  <data name="SettingsPage_Text_19" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="SettingsPage_Text_20" xml:space="preserve">
+    <value>Reload</value>
+  </data>
+  <data name="SettingsPage_Text_21" xml:space="preserve">
+    <value>About and updates</value>
+  </data>
+  <data name="SettingsPage_Text_22" xml:space="preserve">
+    <value>Current version</value>
+  </data>
+  <data name="SettingsPage_Text_23" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="SettingsPage_Text_24" xml:space="preserve">
+    <value>Download and install</value>
+  </data>
+  <data name="SettingsPage_Header_01" xml:space="preserve">
+    <value>Fall back to incremental update on failure</value>
+  </data>
+  <data name="SettingsPage_OnContent_01" xml:space="preserve">
+    <value>Only download changed files</value>
+  </data>
+  <data name="SettingsPage_OffContent_01" xml:space="preserve">
+    <value>Download the full package</value>
+  </data>
+  <data name="SettingsPage_Text_25" xml:space="preserve">
+    <value>Download and install fetches the official installer, verifies its SHA256, then exits and installs silently before restarting. A portable copy is reinstalled in place; an installed copy updates its original folder. If the installer is unavailable it falls back to incremental or full-package update.</value>
+  </data>
+  <data name="SettingsPage_Content_00" xml:space="preserve">
+    <value>Open releases page</value>
+  </data>
+  <data name="SyncPage_Text_00" xml:space="preserve">
+    <value>Sync</value>
+  </data>
+  <data name="SyncPage_Text_01" xml:space="preserve">
+    <value>Pick the games for this run and start. Global options such as download folder and concurrency are in Settings.</value>
+  </data>
+  <data name="SyncPage_Text_02" xml:space="preserve">
+    <value>Games for this run</value>
+  </data>
+  <data name="SyncPage_Text_03" xml:space="preserve">
+    <value>Maximum photos</value>
+  </data>
+  <data name="SyncPage_PlaceholderText_00" xml:space="preserve">
+    <value>Leave empty for no limit</value>
+  </data>
+  <data name="SyncPage_Text_04" xml:space="preserve">
+    <value>Start with a small number to verify your configuration.</value>
+  </data>
+  <data name="SyncPage_Header_00" xml:space="preserve">
+    <value>Force re-download</value>
+  </data>
+  <data name="SyncPage_OnContent_00" xml:space="preserve">
+    <value>Overwrite files that already exist locally</value>
+  </data>
+  <data name="SyncPage_OffContent_00" xml:space="preserve">
+    <value>Skip photos that were already downloaded</value>
+  </data>
+  <data name="SyncPage_Text_05" xml:space="preserve">
+    <value>Start sync</value>
+  </data>
+  <data name="SyncPage_Text_06" xml:space="preserve">
+    <value>Stop</value>
+  </data>
+  <data name="SyncPage_Title_00" xml:space="preserve">
+    <value>Operation failed</value>
+  </data>
+  <data name="SyncPage_Text_07" xml:space="preserve">
+    <value>Sync progress</value>
+  </data>
+  <data name="SyncPage_Text_08" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="SyncPage_Text_09" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="SyncPage_Text_10" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="SyncPage_Text_11" xml:space="preserve">
+    <value>Sync progress</value>
+  </data>
+  <data name="SyncPage_Text_12" xml:space="preserve">
+    <value>Added</value>
+  </data>
+  <data name="SyncPage_Text_13" xml:space="preserve">
+    <value>Skipped</value>
+  </data>
+  <data name="SyncPage_Text_14" xml:space="preserve">
+    <value>Failed</value>
+  </data>
+  <data name="SyncPage_Title_01" xml:space="preserve">
+    <value>Cancelling</value>
+  </data>
+  <data name="SyncPage_Text_15" xml:space="preserve">
+    <value>Failure details</value>
+  </data>
+</root>

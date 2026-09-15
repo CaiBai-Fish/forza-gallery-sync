@@ -12,8 +12,8 @@
             <StackPanel Spacing="16">
 
                 <StackPanel>
-                    <TextBlock Text="同步" Style="{StaticResource PageTitleTextStyle}" />
-                    <TextBlock Text="选择本次要处理的游戏并启动同步；下载目录、并发等全局配置在「设置」页。"
+                    <TextBlock x:Uid="SyncPage_Text_00" Style="{StaticResource PageTitleTextStyle}" />
+                    <TextBlock x:Uid="SyncPage_Text_01"
                                Style="{StaticResource PageSubtitleTextStyle}" />
                 </StackPanel>
 
@@ -22,7 +22,7 @@
 
                         <!-- 游戏多选 -->
                         <StackPanel Spacing="8">
-                            <TextBlock Text="本次同步的游戏" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SyncPage_Text_02" Style="{StaticResource FieldLabelTextStyle}" />
                             <ItemsControl ItemsSource="{x:Bind VM.GameToggles, Mode=OneWay}">
                                 <ItemsControl.ItemsPanel>
                                     <ItemsPanelTemplate>
@@ -45,15 +45,14 @@
 
                         <!-- 数量上限 -->
                         <StackPanel Spacing="6">
-                            <TextBlock Text="照片数量上限" Style="{StaticResource FieldLabelTextStyle}" />
-                            <TextBox Text="{x:Bind VM.MaxPhotos, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                                     PlaceholderText="留空表示不限制" />
-                            <TextBlock Text="可先只处理少量照片，用来验证配置是否正确。"
+                            <TextBlock x:Uid="SyncPage_Text_03" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBox x:Uid="SyncPage_PlaceholderText_00" Text="{x:Bind VM.MaxPhotos, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
+                            <TextBlock x:Uid="SyncPage_Text_04"
                                        Style="{StaticResource FootnoteTextStyle}" />
                         </StackPanel>
 
                         <!-- 强制重下 -->
-                        <ToggleSwitch Header="强制重新下载"
+                        <ToggleSwitch x:Uid="SyncPage_Header_00"
                                       OnContent="覆盖本地已存在的文件"
                                       OffContent="跳过已下载的照片"
                                       IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
@@ -65,20 +64,19 @@
                                     IsEnabled="{x:Bind VM.CanStart, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE768;" FontSize="14" />
-                                    <TextBlock Text="开始同步" />
+                                    <TextBlock x:Uid="SyncPage_Text_05" />
                                 </StackPanel>
                             </Button>
                             <Button Click="OnStop" IsEnabled="{x:Bind VM.Running, Mode=OneWay}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE71A;" FontSize="14" />
-                                    <TextBlock Text="停止" />
+                                    <TextBlock x:Uid="SyncPage_Text_06" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>
 
-                        <InfoBar IsOpen="{Binding HasActionError}"
+                        <InfoBar x:Uid="SyncPage_Title_00" IsOpen="{Binding HasActionError}"
                                  Severity="Error" IsClosable="False"
-                                 Title="操作失败"
                                  Message="{Binding ActionError}" />
 
                         <InfoBar IsOpen="{Binding HasMessage}"
@@ -97,7 +95,7 @@
                 <Border Style="{StaticResource CardBorderStyle}"
                         Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="同步进度" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Uid="SyncPage_Text_11" Style="{StaticResource SectionTitleTextStyle}" />
 
                         <StackPanel Orientation="Horizontal" Spacing="10">
                             <FontIcon Glyph="&#xE9D9;" FontSize="20"
@@ -118,18 +116,18 @@
                                             CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                     <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold"
                                                Foreground="{ThemeResource AppSuccessBrush}" />
-                                    <TextBlock Text="新增" Style="{StaticResource FootnoteTextStyle}" />
+                                    <TextBlock x:Uid="SyncPage_Text_12" Style="{StaticResource FootnoteTextStyle}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                             CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                     <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold" />
-                                    <TextBlock Text="跳过" Style="{StaticResource FootnoteTextStyle}" />
+                                    <TextBlock x:Uid="SyncPage_Text_13" Style="{StaticResource FootnoteTextStyle}" />
                                 </StackPanel>
                                 <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                             CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                     <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="20" FontWeight="SemiBold"
                                                Foreground="{ThemeResource AppDangerBrush}" />
-                                    <TextBlock Text="失败" Style="{StaticResource FootnoteTextStyle}" />
+                                    <TextBlock x:Uid="SyncPage_Text_14" Style="{StaticResource FootnoteTextStyle}" />
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
@@ -141,7 +139,7 @@
                         Visibility="{x:Bind VM.Running, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Spacing="14">
                         <Grid ColumnDefinitions="*,Auto">
-                            <TextBlock Text="同步进度" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
+                            <TextBlock x:Uid="SyncPage_Text_11" Style="{StaticResource SectionTitleTextStyle}" VerticalAlignment="Center" />
                             <TextBlock Grid.Column="1" Text="{x:Bind VM.PercentText, Mode=OneWay}"
                                        FontSize="20" FontWeight="SemiBold"
                                        Foreground="{ThemeResource AppBrandBrush}" />
@@ -167,26 +165,25 @@
                                         CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                 <TextBlock Text="{x:Bind VM.SyncedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold"
                                            Foreground="{ThemeResource AppSuccessBrush}" />
-                                <TextBlock Text="新增" Style="{StaticResource FootnoteTextStyle}" />
+                                <TextBlock x:Uid="SyncPage_Text_12" Style="{StaticResource FootnoteTextStyle}" />
                             </StackPanel>
                             <StackPanel Grid.Column="1" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                         CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                 <TextBlock Text="{x:Bind VM.SkippedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold" />
-                                <TextBlock Text="跳过" Style="{StaticResource FootnoteTextStyle}" />
+                                <TextBlock x:Uid="SyncPage_Text_13" Style="{StaticResource FootnoteTextStyle}" />
                             </StackPanel>
                             <StackPanel Grid.Column="2" Spacing="2" Background="{ThemeResource SubtleFillColorSecondaryBrush}"
                                         CornerRadius="{StaticResource CardCornerRadius}" Padding="12">
                                 <TextBlock Text="{x:Bind VM.FailedText, Mode=OneWay}" FontSize="22" FontWeight="SemiBold"
                                            Foreground="{ThemeResource AppDangerBrush}" />
-                                <TextBlock Text="失败" Style="{StaticResource FootnoteTextStyle}" />
+                                <TextBlock x:Uid="SyncPage_Text_14" Style="{StaticResource FootnoteTextStyle}" />
                             </StackPanel>
                         </Grid>
 
                         <TextBlock Text="{x:Bind VM.ProgMessage, Mode=OneWay}" FontSize="13" TextWrapping="Wrap" />
 
-                        <InfoBar IsOpen="{Binding CancelRequested}"
+                        <InfoBar x:Uid="SyncPage_Title_01" IsOpen="{Binding CancelRequested}"
                                  Severity="Informational" IsClosable="False"
-                                 Title="正在取消"
                                  Message="已发送取消请求，等待当前批次结束。" />
                     </StackPanel>
                 </Border>
@@ -195,7 +192,7 @@
                 <Border Style="{StaticResource CardBorderStyle}"
                         Visibility="{x:Bind VM.HasFailures, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
                     <StackPanel Spacing="10">
-                        <TextBlock Text="失败明细" Style="{StaticResource SectionTitleTextStyle}" />
+                        <TextBlock x:Uid="SyncPage_Text_15" Style="{StaticResource SectionTitleTextStyle}" />
                         <ItemsControl ItemsSource="{x:Bind VM.FailedItems, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
                                 <DataTemplate x:DataType="models:FailedItem">

@@ -17,8 +17,7 @@
             </Button>
 
             <!-- 搜索 -->
-            <AutoSuggestBox x:Name="SearchBox" Grid.Column="1" Width="260"
-                            PlaceholderText="搜索标题 / ID / 游戏"
+            <AutoSuggestBox x:Uid="GalleryPage_PlaceholderText_00" x:Name="SearchBox" Grid.Column="1" Width="260"
                             QueryIcon="Find"
                             TextChanged="OnSearchTextChanged"
                             QuerySubmitted="OnSearchSubmitted" />
@@ -29,12 +28,10 @@
                            VerticalAlignment="Center"
                            Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                            FontSize="12" />
-                <ComboBox x:Name="GameCombo" MinWidth="172"
-                          PlaceholderText="全部游戏"
+                <ComboBox x:Uid="GalleryPage_PlaceholderText_01" x:Name="GameCombo" MinWidth="172"
                           ItemsSource="{x:Bind VM.GamesList, Mode=OneWay}"
                           SelectionChanged="OnGameChanged" />
-                <ComboBox x:Name="MonthCombo" MinWidth="150"
-                          PlaceholderText="全部月份"
+                <ComboBox x:Uid="GalleryPage_PlaceholderText_02" x:Name="MonthCombo" MinWidth="150"
                           ItemsSource="{x:Bind VM.Months, Mode=OneWay}"
                           SelectionChanged="OnMonthChanged" />
                 <Button Style="{StaticResource ToolbarButtonStyle}"
@@ -80,23 +77,23 @@
 
                         <Grid.ContextFlyout>
                             <MenuFlyout>
-                                <MenuFlyoutItem Text="查看详情" Click="OnMenuViewDetail">
+                                <MenuFlyoutItem x:Uid="GalleryPage_Text_01" Click="OnMenuViewDetail">
                                     <MenuFlyoutItem.Icon>
                                         <FontIcon Glyph="&#xE8A7;" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
                                 <MenuFlyoutSeparator />
-                                <MenuFlyoutItem Text="复制图片" Click="OnMenuCopyImage">
+                                <MenuFlyoutItem x:Uid="GalleryPage_Text_15" Click="OnMenuCopyImage">
                                     <MenuFlyoutItem.Icon>
                                         <FontIcon Glyph="&#xE8C8;" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
-                                <MenuFlyoutItem Text="用默认应用打开" Click="OnMenuOpenWithDefault">
+                                <MenuFlyoutItem x:Uid="GalleryPage_Text_16" Click="OnMenuOpenWithDefault">
                                     <MenuFlyoutItem.Icon>
                                         <FontIcon Glyph="&#xE8E5;" />
                                     </MenuFlyoutItem.Icon>
                                 </MenuFlyoutItem>
-                                <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuOpenDir">
+                                <MenuFlyoutItem x:Uid="GalleryPage_Text_09" Click="OnMenuOpenDir">
                                     <MenuFlyoutItem.Icon>
                                         <FontIcon Glyph="&#xE8B7;" />
                                     </MenuFlyoutItem.Icon>
@@ -123,9 +120,9 @@
                 <FontIcon Glyph="&#xEB9F;" FontSize="32"
                           Foreground="{ThemeResource TextFillColorTertiaryBrush}"
                           Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-                <TextBlock Text="没有找到照片" FontSize="15" FontWeight="SemiBold" TextAlignment="Center"
+                <TextBlock x:Uid="GalleryPage_Text_05" FontSize="15" FontWeight="SemiBold" TextAlignment="Center"
                            Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
-                <TextBlock Text="换个筛选条件，或先前往「同步」页拉取照片。"
+                <TextBlock x:Uid="GalleryPage_Text_06"
                            Style="{StaticResource CaptionTextStyle}" TextAlignment="Center"
                            Visibility="{x:Bind VM.ShowEmpty, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
             </StackPanel>
@@ -178,18 +175,18 @@
                     <!-- 详情大图的右键菜单：与缩略图一致 -->
                     <Image.ContextFlyout>
                         <MenuFlyout>
-                            <MenuFlyoutItem Text="复制图片" Click="OnDetailCopyImage">
+                            <MenuFlyoutItem x:Uid="GalleryPage_Text_15" Click="OnDetailCopyImage">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE8C8;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
                             <MenuFlyoutSeparator />
-                            <MenuFlyoutItem Text="用默认应用打开" Click="OnDetailOpenFile">
+                            <MenuFlyoutItem x:Uid="GalleryPage_Text_16" Click="OnDetailOpenFile">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE8E5;" />
                                 </MenuFlyoutItem.Icon>
                             </MenuFlyoutItem>
-                            <MenuFlyoutItem Text="打开所在文件夹" Click="OnDetailRevealInExplorer">
+                            <MenuFlyoutItem x:Uid="GalleryPage_Text_09" Click="OnDetailRevealInExplorer">
                                 <MenuFlyoutItem.Icon>
                                     <FontIcon Glyph="&#xE8B7;" />
                                 </MenuFlyoutItem.Icon>
@@ -231,23 +228,23 @@
                         <Border Style="{StaticResource CardDividerStyle}" />
 
                         <StackPanel Spacing="4">
-                            <TextBlock Text="上传时间" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="GalleryPage_Text_10" Style="{StaticResource FieldLabelTextStyle}" />
                             <TextBlock x:Name="DetailSubmitted" FontSize="13" />
 
-                            <TextBlock Text="下载时间" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Uid="GalleryPage_Text_11" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
                             <TextBlock x:Name="DetailDownloaded" FontSize="13" />
 
-                            <TextBlock Text="照片 ID" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Uid="GalleryPage_Text_12" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
                             <TextBlock x:Name="DetailPhotoId" FontSize="12" TextWrapping="Wrap"
                                        IsTextSelectionEnabled="True"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                            <TextBlock Text="本地路径" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Uid="GalleryPage_Text_13" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
                             <TextBlock x:Name="DetailPath" FontSize="12" TextWrapping="Wrap"
                                        IsTextSelectionEnabled="True"
                                        Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
 
-                            <TextBlock Text="描述" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
+                            <TextBlock x:Uid="GalleryPage_Text_14" Style="{StaticResource FieldLabelTextStyle}" Margin="0,10,0,4" />
                             <TextBlock x:Name="DetailDesc" FontSize="13" TextWrapping="Wrap" />
                         </StackPanel>
 
@@ -257,7 +254,7 @@
                                 Style="{StaticResource IconTextButtonStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE8C8;" FontSize="14" />
-                                <TextBlock Text="复制图片" />
+                                <TextBlock x:Uid="GalleryPage_Text_15" />
                             </StackPanel>
                         </Button>
 
@@ -265,7 +262,7 @@
                                 Style="{StaticResource IconTextButtonStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE8E5;" FontSize="14" />
-                                <TextBlock Text="用默认应用打开" />
+                                <TextBlock x:Uid="GalleryPage_Text_16" />
                             </StackPanel>
                         </Button>
                     </StackPanel>

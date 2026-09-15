@@ -9,8 +9,8 @@
         <StackPanel Spacing="16" MaxWidth="980" HorizontalAlignment="Stretch">
 
             <StackPanel>
-                <TextBlock Text="设置" Style="{StaticResource PageTitleTextStyle}" />
-                <TextBlock Text="账号登录、存储位置、网络与并发等全局配置。"
+                <TextBlock x:Uid="SettingsPage_Text_00" Style="{StaticResource PageTitleTextStyle}" />
+                <TextBlock x:Uid="SettingsPage_Text_01"
                            Style="{StaticResource PageSubtitleTextStyle}" />
             </StackPanel>
 
@@ -18,7 +18,7 @@
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="12">
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="账号与 Token" Style="{StaticResource SectionTitleTextStyle}"
+                        <TextBlock x:Uid="SettingsPage_Text_02" Style="{StaticResource SectionTitleTextStyle}"
                                    VerticalAlignment="Center" />
                         <!-- 状态徽标 -->
                         <Border Grid.Column="1" CornerRadius="{StaticResource PillCornerRadius}"
@@ -40,14 +40,14 @@
                                 IsEnabled="{x:Bind VM.IsLoggingIn, Mode=OneWay, Converter={StaticResource InvertBool}}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE774;" FontSize="14" />
-                                <TextBlock Text="浏览器一键登录" />
+                                <TextBlock x:Uid="SettingsPage_Text_03" />
                             </StackPanel>
                         </Button>
                         <Button Click="OnRefreshToken"
                                 IsEnabled="{x:Bind VM.Auth.HasRefreshToken, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                                <TextBlock Text="刷新 Token" />
+                                <TextBlock x:Uid="SettingsPage_Text_04" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -64,7 +64,7 @@
                                Foreground="{ThemeResource AppSuccessBrush}" TextWrapping="Wrap"
                                Visibility="{x:Bind VM.IsLoggingIn, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
 
-                    <TextBlock Text="在弹出窗口中登录 Xbox / Microsoft 账号（支持两步验证），登录成功后 Token 会自动保存。"
+                    <TextBlock x:Uid="SettingsPage_Text_05"
                                Style="{StaticResource FootnoteTextStyle}" />
                 </StackPanel>
             </Border>
@@ -72,16 +72,16 @@
             <!-- ================= 存储 ================= -->
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="存储" Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock x:Uid="SettingsPage_Text_06" Style="{StaticResource SectionTitleTextStyle}" />
 
                     <StackPanel Spacing="6">
-                        <TextBlock Text="下载目录" Style="{StaticResource FieldLabelTextStyle}" />
+                        <TextBlock x:Uid="SettingsPage_Text_07" Style="{StaticResource FieldLabelTextStyle}" />
                         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="8">
                             <TextBox Text="{x:Bind VM.DownloadDir, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                             <Button Grid.Column="1" Click="OnPickDir">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE8B7;" FontSize="14" />
-                                    <TextBlock Text="选择…" />
+                                    <TextBlock x:Uid="SettingsPage_Text_08" />
                                 </StackPanel>
                             </Button>
                         </Grid>
@@ -89,10 +89,10 @@
 
                     <!-- 只读路径信息 -->
                     <StackPanel Spacing="4">
-                        <TextBlock Text="数据库" Style="{StaticResource FieldLabelTextStyle}" />
+                        <TextBlock x:Uid="SettingsPage_Text_09" Style="{StaticResource FieldLabelTextStyle}" />
                         <TextBlock Text="{x:Bind VM.DatabasePath, Mode=OneWay}" Style="{StaticResource InfoValueTextStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
-                        <TextBlock Text="配置文件" Style="{StaticResource FieldLabelTextStyle}" Margin="0,8,0,4" />
+                        <TextBlock x:Uid="SettingsPage_Text_10" Style="{StaticResource FieldLabelTextStyle}" Margin="0,8,0,4" />
                         <TextBlock Text="{x:Bind VM.ConfigPath, Mode=OneWay}" Style="{StaticResource InfoValueTextStyle}"
                                    Foreground="{ThemeResource TextFillColorSecondaryBrush}" />
                     </StackPanel>
@@ -102,31 +102,31 @@
             <!-- ================= 网络与并发 ================= -->
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="16">
-                    <TextBlock Text="网络与并发" Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock x:Uid="SettingsPage_Text_11" Style="{StaticResource SectionTitleTextStyle}" />
 
                     <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="14" ColumnSpacing="14">
                         <StackPanel Grid.Row="0" Spacing="6">
-                            <TextBlock Text="每页数量" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsPage_Text_12" Style="{StaticResource FieldLabelTextStyle}" />
                             <TextBox Text="{x:Bind VM.PageSize, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Row="0" Grid.Column="1" Spacing="6">
-                            <TextBlock Text="分页方式" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsPage_Text_13" Style="{StaticResource FieldLabelTextStyle}" />
                             <ComboBox HorizontalAlignment="Stretch"
                                       ItemsSource="{x:Bind VM.PaginationOptions, Mode=OneWay}"
                                       SelectedItem="{x:Bind VM.Pagination, Mode=TwoWay}" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="1" Spacing="6">
-                            <TextBlock Text="并发线程数" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsPage_Text_14" Style="{StaticResource FieldLabelTextStyle}" />
                             <TextBox Text="{x:Bind VM.Workers, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Row="1" Grid.Column="1" Spacing="6">
-                            <TextBlock Text="失败重试次数" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsPage_Text_15" Style="{StaticResource FieldLabelTextStyle}" />
                             <TextBox Text="{x:Bind VM.Retries, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
 
                         <StackPanel Grid.Row="2" Spacing="6">
-                            <TextBlock Text="超时（秒）" Style="{StaticResource FieldLabelTextStyle}" />
+                            <TextBlock x:Uid="SettingsPage_Text_16" Style="{StaticResource FieldLabelTextStyle}" />
                             <TextBox Text="{x:Bind VM.Timeout, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}" />
                         </StackPanel>
                         <StackPanel Grid.Row="2" Grid.Column="1" Spacing="6">
@@ -135,7 +135,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <ToggleSwitch Header="验证 SSL 证书"
+                    <ToggleSwitch x:Uid="SettingsPage_Header_00"
                                   OnContent="正常校验"
                                   OffContent="关闭（自签名证书时可绕过）"
                                   IsOn="{x:Bind VM.VerifySsl, Mode=TwoWay}" />
@@ -145,8 +145,8 @@
             <!-- ================= 启用游戏 ================= -->
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="10">
-                    <TextBlock Text="启用游戏" Style="{StaticResource SectionTitleTextStyle}" />
-                    <TextBlock Text="这里是默认同步范围；「同步」页可为单次任务临时改选。"
+                    <TextBlock x:Uid="SettingsPage_Text_17" Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock x:Uid="SettingsPage_Text_18"
                                Style="{StaticResource FootnoteTextStyle}" />
                     <ItemsControl ItemsSource="{x:Bind VM.GameToggles, Mode=OneWay}">
                         <ItemsControl.ItemsPanel>
@@ -171,13 +171,13 @@
                         IsEnabled="{x:Bind VM.Saving, Mode=OneWay, Converter={StaticResource InvertBool}}">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE74E;" FontSize="14" />
-                        <TextBlock Text="保存" />
+                        <TextBlock x:Uid="SettingsPage_Text_19" />
                     </StackPanel>
                 </Button>
                 <Button Click="OnReload">
                     <StackPanel Orientation="Horizontal" Spacing="8">
                         <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                        <TextBlock Text="重新加载" />
+                        <TextBlock x:Uid="SettingsPage_Text_20" />
                     </StackPanel>
                 </Button>
             </StackPanel>
@@ -205,10 +205,10 @@
             <!-- ================= 关于与更新 ================= -->
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel Spacing="12">
-                    <TextBlock Text="关于与更新" Style="{StaticResource SectionTitleTextStyle}" />
+                    <TextBlock x:Uid="SettingsPage_Text_21" Style="{StaticResource SectionTitleTextStyle}" />
 
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="当前版本" Style="{StaticResource FootnoteTextStyle}" VerticalAlignment="Center" />
+                        <TextBlock x:Uid="SettingsPage_Text_22" Style="{StaticResource FootnoteTextStyle}" VerticalAlignment="Center" />
                         <TextBlock Text="{x:Bind VM.CurrentVersion, Mode=OneWay}" FontSize="12" FontWeight="SemiBold"
                                    VerticalAlignment="Center" />
                     </StackPanel>
@@ -218,7 +218,7 @@
                                 IsEnabled="{x:Bind VM.CheckingUpdate, Mode=OneWay, Converter={StaticResource InvertBool}}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE721;" FontSize="14" />
-                                <TextBlock Text="检查更新" />
+                                <TextBlock x:Uid="SettingsPage_Text_23" />
                             </StackPanel>
                         </Button>
                         <Button Click="OnDownloadUpdate"
@@ -226,7 +226,7 @@
                                 IsEnabled="{x:Bind VM.CanDownloadUpdate, Mode=OneWay}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE896;" FontSize="14" />
-                                <TextBlock Text="下载并更新" />
+                                <TextBlock x:Uid="SettingsPage_Text_24" />
                             </StackPanel>
                         </Button>
                         <ProgressRing Width="16" Height="16" VerticalAlignment="Center"
@@ -235,7 +235,7 @@
                     </StackPanel>
 
                     <!-- 增量更新只在"安装程序方式不可用"时作为回退，因此开关名改成回退策略 -->
-                    <ToggleSwitch Header="更新失败时回退增量更新"
+                    <ToggleSwitch x:Uid="SettingsPage_Header_01"
                                   OnContent="只下载变化的文件"
                                   OffContent="下载完整包"
                                   IsOn="{x:Bind VM.PreferIncremental, Mode=TwoWay}"
@@ -251,7 +251,7 @@
                                Foreground="{ThemeResource AppBrandBrush}"
                                Visibility="{x:Bind VM.HasUpdateActionMsg, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-                    <TextBlock Text="点「下载并安装」会直接下载官方安装程序、校验 SHA256，然后退出本程序静默安装，装完自动启动新版本。免安装版装回当前目录保持免安装，安装版更新到原安装目录。安装程序不可用时自动回退到增量更新或完整包。"
+                    <TextBlock x:Uid="SettingsPage_Text_25"
                                Style="{StaticResource FootnoteTextStyle}"
                                Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
@@ -279,7 +279,7 @@
                         </ScrollViewer>
                     </Border>
 
-                    <Button Content="打开下载页" Click="OnOpenUpdate"
+                    <Button x:Uid="SettingsPage_Content_00" Click="OnOpenUpdate"
                             Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
                 </StackPanel>
             </Border>

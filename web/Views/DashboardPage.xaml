@@ -12,9 +12,8 @@
             <!-- ================= 页头 ================= -->
             <Grid ColumnDefinitions="*,Auto" ColumnSpacing="16">
                 <StackPanel>
-                    <TextBlock Text="总览" Style="{StaticResource PageTitleTextStyle}" />
-                    <TextBlock Style="{StaticResource PageSubtitleTextStyle}"
-                               Text="已同步照片的统计概览；同步参数与账号配置在「同步」「设置」页。" />
+                    <TextBlock x:Uid="DashboardPage_Text_00" Style="{StaticResource PageTitleTextStyle}" />
+                    <TextBlock x:Uid="DashboardPage_Text_01" Style="{StaticResource PageSubtitleTextStyle}" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8" VerticalAlignment="Top">
@@ -22,13 +21,13 @@
                             ToolTipService.ToolTip="重新加载统计">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE72C;" FontSize="14" />
-                            <TextBlock Text="刷新" />
+                            <TextBlock x:Uid="DashboardPage_Text_02" />
                         </StackPanel>
                     </Button>
                     <Button Click="OnGoSync" Style="{StaticResource PrimaryActionButtonStyle}">
                         <StackPanel Orientation="Horizontal" Spacing="8">
                             <FontIcon Glyph="&#xE895;" FontSize="14" />
-                            <TextBlock Text="前往同步" />
+                            <TextBlock x:Uid="DashboardPage_Text_03" />
                         </StackPanel>
                     </Button>
                 </StackPanel>
@@ -39,19 +38,17 @@
                           IsActive="{x:Bind VM.Loading, Mode=OneWay}"
                           Visibility="{x:Bind VM.Loading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-            <InfoBar IsOpen="{x:Bind VM.HasError, Mode=OneWay}"
+            <InfoBar x:Uid="DashboardPage_Title_00" IsOpen="{x:Bind VM.HasError, Mode=OneWay}"
                      Severity="Error"
                      IsClosable="False"
-                     Title="加载统计失败"
                      Message="{x:Bind VM.Error, Mode=OneWay}" />
 
-            <InfoBar IsOpen="{x:Bind VM.TokenNeedsAttention, Mode=OneWay}"
+            <InfoBar x:Uid="DashboardPage_Title_01" IsOpen="{x:Bind VM.TokenNeedsAttention, Mode=OneWay}"
                      Severity="Warning"
                      IsClosable="False"
-                     Title="账号尚未就绪"
                      Message="{x:Bind VM.TokenSummary, Mode=OneWay}">
                 <InfoBar.ActionButton>
-                    <Button Content="前往设置" Click="OnGoSettings" />
+                    <Button x:Uid="DashboardPage_Content_00" Click="OnGoSettings" />
                 </InfoBar.ActionButton>
             </InfoBar>
 
@@ -59,7 +56,7 @@
             <Border Style="{StaticResource CardBorderStyle}" Padding="24">
                 <Grid ColumnDefinitions="*,Auto" ColumnSpacing="24">
                     <StackPanel Spacing="4">
-                        <TextBlock Text="照片总量" Style="{StaticResource CaptionTextStyle}" />
+                        <TextBlock x:Uid="DashboardPage_Text_04" Style="{StaticResource CaptionTextStyle}" />
                         <TextBlock Text="{x:Bind VM.HeroTotal, Mode=OneWay}"
                                    FontSize="44" FontWeight="Bold" LineHeight="52" />
                         <TextBlock Text="{x:Bind VM.HeroCaption, Mode=OneWay}"
@@ -69,14 +66,14 @@
                     <StackPanel Grid.Column="1" VerticalAlignment="Center"
                                 Orientation="Horizontal" Spacing="24">
                         <StackPanel Spacing="4" MinWidth="140">
-                            <TextBlock Text="最近同步" Style="{StaticResource CaptionTextStyle}" />
+                            <TextBlock x:Uid="DashboardPage_Text_09" Style="{StaticResource CaptionTextStyle}" />
                             <TextBlock Text="{x:Bind VM.LastSyncText, Mode=OneWay}"
                                        FontSize="16" FontWeight="SemiBold" />
                         </StackPanel>
                         <Button Click="OnGoGallery" Style="{StaticResource IconTextButtonStyle}">
                             <StackPanel Orientation="Horizontal" Spacing="8">
                                 <FontIcon Glyph="&#xE8B9;" FontSize="14" />
-                                <TextBlock Text="浏览照片库" />
+                                <TextBlock x:Uid="DashboardPage_Text_06" />
                             </StackPanel>
                         </Button>
                     </StackPanel>
@@ -119,7 +116,7 @@
                 <!-- 按游戏分布 -->
                 <Border Grid.Column="0" Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
-                        <TextBlock Text="按游戏分布" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
+                        <TextBlock x:Uid="DashboardPage_Text_07" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
 
                         <ItemsControl ItemsSource="{x:Bind VM.GameBars, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
@@ -142,7 +139,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Text="暂无照片记录，先执行一次同步" Style="{StaticResource CaptionTextStyle}"
+                        <TextBlock x:Uid="DashboardPage_Text_08" Style="{StaticResource CaptionTextStyle}"
                                    HorizontalAlignment="Center" Margin="0,16"
                                    Visibility="{x:Bind VM.HasGameBars, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
                     </StackPanel>
@@ -151,7 +148,7 @@
                 <!-- 最近同步记录 -->
                 <Border Grid.Column="1" Style="{StaticResource CardBorderStyle}">
                     <StackPanel>
-                        <TextBlock Text="最近同步" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
+                        <TextBlock x:Uid="DashboardPage_Text_09" Style="{StaticResource SectionTitleTextStyle}" Margin="0,0,0,12" />
 
                         <ItemsControl ItemsSource="{x:Bind VM.SyncRows, Mode=OneWay}">
                             <ItemsControl.ItemTemplate>
@@ -172,7 +169,7 @@
                             </ItemsControl.ItemTemplate>
                         </ItemsControl>
 
-                        <TextBlock Text="还没有同步记录" Style="{StaticResource CaptionTextStyle}"
+                        <TextBlock x:Uid="DashboardPage_Text_10" Style="{StaticResource CaptionTextStyle}"
                                    HorizontalAlignment="Center" Margin="0,16"
                                    Visibility="{x:Bind VM.HasSyncRows, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
                     </StackPanel>
@@ -183,9 +180,9 @@
             <Border Style="{StaticResource CardBorderStyle}">
                 <StackPanel>
                     <Grid ColumnDefinitions="*,Auto">
-                        <TextBlock Text="最新照片" Style="{StaticResource SectionTitleTextStyle}"
+                        <TextBlock x:Uid="DashboardPage_Text_11" Style="{StaticResource SectionTitleTextStyle}"
                                    VerticalAlignment="Center" />
-                        <HyperlinkButton Grid.Column="1" Content="查看全部" Click="OnGoGallery" />
+                        <HyperlinkButton x:Uid="DashboardPage_Content_01" Grid.Column="1" Click="OnGoGallery" />
                     </Grid>
 
                     <ItemsControl Margin="0,8,0,0" ItemsSource="{x:Bind VM.RecentPhotos, Mode=OneWay}"
@@ -208,18 +205,18 @@
                                     <!-- 右键菜单：与照片库缩略图保持一致 -->
                                     <Button.ContextFlyout>
                                         <MenuFlyout>
-                                            <MenuFlyoutItem Text="复制图片" Click="OnMenuCopyImage">
+                                            <MenuFlyoutItem x:Uid="DashboardPage_Text_20" Click="OnMenuCopyImage">
                                                 <MenuFlyoutItem.Icon>
                                                     <FontIcon Glyph="&#xE8C8;" />
                                                 </MenuFlyoutItem.Icon>
                                             </MenuFlyoutItem>
                                             <MenuFlyoutSeparator />
-                                            <MenuFlyoutItem Text="用默认应用打开" Click="OnMenuOpenWithDefault">
+                                            <MenuFlyoutItem x:Uid="DashboardPage_Text_21" Click="OnMenuOpenWithDefault">
                                                 <MenuFlyoutItem.Icon>
                                                     <FontIcon Glyph="&#xE8E5;" />
                                                 </MenuFlyoutItem.Icon>
                                             </MenuFlyoutItem>
-                                            <MenuFlyoutItem Text="打开所在文件夹" Click="OnMenuRevealInExplorer">
+                                            <MenuFlyoutItem x:Uid="DashboardPage_Text_19" Click="OnMenuRevealInExplorer">
                                                 <MenuFlyoutItem.Icon>
                                                     <FontIcon Glyph="&#xE8B7;" />
                                                 </MenuFlyoutItem.Icon>
@@ -247,7 +244,7 @@
                         </ItemsControl.ItemTemplate>
                     </ItemsControl>
 
-                    <TextBlock Text="同步后这里会显示最新的照片" Style="{StaticResource CaptionTextStyle}"
+                    <TextBlock x:Uid="DashboardPage_Text_16" Style="{StaticResource CaptionTextStyle}"
                                Margin="0,8,0,0"
                                Visibility="{x:Bind VM.HasRecentPhotos, Mode=OneWay, Converter={StaticResource BoolToVisibility}, ConverterParameter=invert}" />
                 </StackPanel>
@@ -299,18 +296,18 @@
                             <!-- 大图的右键菜单：与缩略图一致 -->
                             <Image.ContextFlyout>
                                 <MenuFlyout>
-                                    <MenuFlyoutItem Text="复制图片" Click="OnPreviewCopyImage">
+                                    <MenuFlyoutItem x:Uid="DashboardPage_Text_20" Click="OnPreviewCopyImage">
                                         <MenuFlyoutItem.Icon>
                                             <FontIcon Glyph="&#xE8C8;" />
                                         </MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
                                     <MenuFlyoutSeparator />
-                                    <MenuFlyoutItem Text="用默认应用打开" Click="OnPreviewOpenWithDefault">
+                                    <MenuFlyoutItem x:Uid="DashboardPage_Text_21" Click="OnPreviewOpenWithDefault">
                                         <MenuFlyoutItem.Icon>
                                             <FontIcon Glyph="&#xE8E5;" />
                                         </MenuFlyoutItem.Icon>
                                     </MenuFlyoutItem>
-                                    <MenuFlyoutItem Text="打开所在文件夹" Click="OnPreviewOpenFolder">
+                                    <MenuFlyoutItem x:Uid="DashboardPage_Text_19" Click="OnPreviewOpenFolder">
                                         <MenuFlyoutItem.Icon>
                                             <FontIcon Glyph="&#xE8B7;" />
                                         </MenuFlyoutItem.Icon>
@@ -331,13 +328,13 @@
                             <Button Click="OnPreviewCopyImage" Style="{StaticResource IconTextButtonStyle}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE8C8;" FontSize="14" />
-                                    <TextBlock Text="复制图片" />
+                                    <TextBlock x:Uid="DashboardPage_Text_20" />
                                 </StackPanel>
                             </Button>
                             <Button Click="OnPreviewOpenFile" Style="{StaticResource IconTextButtonStyle}">
                                 <StackPanel Orientation="Horizontal" Spacing="8">
                                     <FontIcon Glyph="&#xE8E5;" FontSize="14" />
-                                    <TextBlock Text="用默认应用打开" />
+                                    <TextBlock x:Uid="DashboardPage_Text_21" />
                                 </StackPanel>
                             </Button>
                         </StackPanel>

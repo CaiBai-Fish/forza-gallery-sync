@@ -31,6 +31,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- 界面文案资源（i18n）放在 Strings\<语言>\Resources.resw：
+         .NET SDK 会**自动**把 Strings 下的 .resw 收进 PRIResource 并编进 resources.pri，
+         不需要（也不能）在这里再显式声明 PRIResource —— 重复包含会报 NETSDK1022。
+         不要放进 Resources\（那里是打包脚本与安装程序语言文件，属内嵌/构建资源）。 -->
     <Content Include="Assets\**\*" />
     <!-- 内嵌 Python 运行时（由 make-runtime.ps1 生成）作为开发/便携回退；不存在时跳过（干净检出可直接编译） -->
     <EmbeddedResource Include="python-runtime.zip" Condition="Exists('python-runtime.zip')" />

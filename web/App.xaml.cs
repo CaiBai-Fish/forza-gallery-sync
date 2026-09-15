@@ -23,6 +23,7 @@ public partial class App : Application
         // 启动就把版本写进日志：排查"当前版本判定不对"时，这是第一手信息。
         // 版本权威来源是程序集信息（发布时由 make-gui.ps1 注入，取自 pyproject.toml）。
         Logger.Info($"程序集版本：{(string.IsNullOrEmpty(AppVersion.Current) ? "(未注入)" : AppVersion.Current)}");
+        Logger.Info($"界面语言：{System.Globalization.CultureInfo.CurrentUICulture.Name}（文案取自 Strings\\<语言>\\Resources.resw，回退到 zh-CN）");
 
         // 捕获未处理异常：记录到日志并阻止应用崩溃。
         UnhandledException += (_, e) =>
