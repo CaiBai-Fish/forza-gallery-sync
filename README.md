@@ -205,7 +205,8 @@ dotnet run -p:Platform=x64            # 运行桌面窗口
 ```bash
 cd web
 
-# 一键构建（产物：web/dist/ForzaGallerySync-0.5.0-win-x64/，另附同名 .zip）
+# 一键构建（产物：web/dist/ForzaGallerySync-<版本>-win-x64/，另附同名 .zip）
+# 版本号取自 pyproject.toml，无需改本文件
 powershell -ExecutionPolicy Bypass -File .\make-gui.ps1
 
 # 只要目录、不压缩
@@ -460,48 +461,9 @@ pytest
 
 ## 版本记录
 
-> 完整更新日志见 [CHANGELOG.md](CHANGELOG.md)；GitHub Release 的发布说明
-> 由 `.github/workflows/build-release.yml` 自动从 CHANGELOG 对应版本章节生成。
-
-### v0.5.0
-- 变更：**取消 MSI 打包与 Setup 安装程序**，构建直接输出 GUI 版（`make-gui.ps1` →
-  `web/dist/ForzaGallerySync-0.5.0-win-x64/` + 同名 `.zip`）与 CLI 版（`cli-dist/forza-sync.exe`）
-- 新增：GUI **首次运行自动准备 Python 运行时** —— 程序目录为**干净目录**时解压到程序目录（便携），
-  否则解压到默认安装目录 `%LOCALAPPDATA%\Programs\ForzaGallerySync`（可用 `FORZA_SYNC_INSTALL_DIR` 覆盖）；
-  运行时按内嵌 zip 的 SHA256 标记校验，程序升级后自动重新解压
-- 移除：`web/make-msi.ps1`、`web/msi-generate.ps1`、`installer/`（Setup + MSI 工程）、WiX 工具依赖
-
-### v0.4.2
-- 新增：**MSI 安装包**（WiX v4，per-user、x64，`make-msi.ps1` → `web/dist/ForzaGallerySync-0.4.2.msi`）；支持静默安装/卸载，卸载自动保留数据库
-
-### v0.4.1
-- 修复：CLI（Nuitka）在标准 CPython 下构建 sqlite3.dll 冲突；GUI 安装程序 / CLI / 应用 exe 增加应用图标
-
-### v0.4.0
-- 新增：**检查更新**功能（设置页「关于与更新」卡片 + GitHub Releases 源；可选 GitHub token 提升限流）
-- 打包：桌面版内置 Python 运行时（`make-runtime.ps1` 生成内嵌资源包），**脱离 Python 环境运行**
-- 发布：改为**安装程序模式**（`make-installer.ps1` → `web/dist/ForzaGallerySync-Setup-0.4.0.exe`，
-  约 191MB）：安装时把 Python/.NET 运行时**解压到安装目录**，运行时直接使用安装目录环境；
-  内置安装/卸载（开始菜单快捷方式 + 卸载注册表项）
-- 发布：纯后端 CLI 用 **Nuitka 编译为独立单文件**（`make-cli.ps1` → `cli-dist/forza-sync.exe`，约 34MB），
-  与 GUI 版可**分别发布**；已含 `sqlite3.dll`，脱离 Python 环境验证通过
-- 移除：旧 Tauri 前端 `web-legacy/`（如需可从 git 历史找回）
-- 优化：照片 Hero 转场动画改用 RenderTransform（不触发布局，更流畅）；下拉框「全部」选项；同步时 token 过期自动刷新
-- 日志：统一日志模块（`%TEMP%\ForzaGallerySync\logs\`，按天分文件）
-
-### v0.3.0
-- 重构：桌面管理控制台前端由 Vue 3 + Tauri 替换为 **WinUI 3（C# + XAML）**
-- 架构：Python.NET 内嵌 Python（替代 PyO3），复用 `forza_sync` 全部后端逻辑，仍无 HTTP 服务、无端口
-- 页面：仪表盘 / 照片库 / 同步 / 设置 四个模块完整复刻
-- 说明：旧 Tauri 前端保留在 `web-legacy/` 目录供参考
-
-### v0.2.1
-- 修复：桌面版改用 Windows GUI 子系统，双击启动不再闪现命令行窗口（零控制台）
-- 修复：CLI 中文输出按控制台代码页自动编码（GBK/UTF-8 自适应），兼容中文系统 PowerShell
-- 说明：CLI 在交互式终端的输出顺序（提供 `cmd /c start "" /wait` / `Start-Process -Wait` 同步方式）
-
-### v0.1.0
-- 首个版本：Forza 照片同步 CLI + 桌面管理控制台（Tauri + PyO3 内嵌 Python，无 HTTP 服务）
+完整变更历史见 [CHANGELOG.md](CHANGELOG.md)。GitHub Release 的发布说明由
+`.github/workflows/build-release.yml` 从 CHANGELOG 的对应版本章节自动生成，
+因此发布新版本时只需维护 CHANGELOG。
 
 ## 免责声明
 
