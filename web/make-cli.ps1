@@ -1,4 +1,4 @@
-# make-cli.ps1 - Build the Forza Gallery Sync CLI (backend) with Nuitka
+﻿# make-cli.ps1 - Build the Forza Gallery Sync CLI (backend) with Nuitka
 # Usage: powershell -ExecutionPolicy Bypass -File make-cli.ps1 [-Python <python.exe>] [-Version <ver>]
 # Produces a standalone single-file exe (forza-sync.exe) with embedded Python.
 param(

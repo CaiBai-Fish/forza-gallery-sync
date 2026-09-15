@@ -1,4 +1,4 @@
-# make-gui.ps1 - Build the Forza Gallery Sync GUI program (direct output)
+﻿# make-gui.ps1 - Build the Forza Gallery Sync GUI program (direct output)
 #
 # Pipeline:
 #   1. Make sure web\python-runtime.zip exists (make-runtime.ps1). The archive is
@@ -91,10 +91,25 @@ if ($needRuntime) {
 Write-Host "==> [2/4] Publishing GUI (self-contained folder) -> $outDir"
 Remove-DirWithRetry $outDir
 New-Item -ItemType Directory -Force -Path $distDir | Out-Null
+# -Version comes from pyproject.toml (single source of truth, passed by CI or the release script).
+# Inject it into the assembly info so the exe properties show the real version; the workflow
+# reads FileVersionInfo back and asserts it matches pyproject (guards against mismatched packages).
 dotnet publish $appCsproj `
     -c $Config -r $Runtime -p:Platform=x64 `
+    -p:Version=$Version -p:AssemblyVersion=$Version -p:FileVersion=$Version `
     --self-contained true -o $outDir
 if ($LASTEXITCODE -ne 0) { throw "GUI publish failed (exit $LASTEXITCODE)" }
+
+# The published assembly version must match -Version.
+$exePath = Join-Path $outDir "forza-gallery-sync.exe"
+if (Test-Path $exePath) {
+    $info = (Get-Item $exePath).VersionInfo
+    $embedded = ($info.FileVersion -split '\.')[0..2] -join '.'
+    Write-Host "    assembly version: FileVersion=$($info.FileVersion) ProductVersion=$($info.ProductVersion)"
+    if ($embedded -ne $Version) {
+        throw "Assembly version mismatch: FileVersion=$($info.FileVersion) vs -Version=$Version"
+    }
+}
 
 # ---- 3. release manifest (used by the app for clean-directory detection) ----
 Write-Host "==> [3/4] Writing release manifest $manifestName ..."

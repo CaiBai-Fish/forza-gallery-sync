@@ -1,4 +1,4 @@
-# Build the Python runtime package from the FGS conda env (including the
+﻿# Build the Python runtime package from the FGS conda env (including the
 # forza_sync package).
 #   - Always produces web\python-runtime.zip, embedded into the app assembly
 #     (App\Services\PythonHost.cs). The GUI program extracts it on first run,

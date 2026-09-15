@@ -32,33 +32,87 @@ public static class UpdateService
         "https://github.com/CaiBai-Fish/forza-gallery-sync/releases/download/v{0}/ForzaGallerySync-{0}-win-x64.zip";
 
     /// <summary>
-    /// 产物哈希清单地址。
+    /// 产物哈希清单地址（独立 `hashes` 分支，见 build-release.yml）。
     ///
-    /// 清单发布在独立的 `hashes` 分支（见 build-release.yml）：独立分支不会随
-    /// `git clone` 下到工作区，历史也不会挤进主分支；这里用 raw URL 只取这一个文件。
+    /// 两个清单都发在同一个分支上，客户端按顺序取：
+    /// 1. `<版本>.txt` —— 规范格式，每行 `<sha256>  <文件名>`（与 `sha256sum` 输出一致）；
+    /// 2. `hashes.json` —— 带版本号与体积的 JSON，`.txt` 不可用时兜底。
+    ///
+    /// 两者都是 raw URL 静态文件，**不消耗 GitHub API 配额**，因此是日常路径。
     /// </summary>
-    private const string HashesUrl =
-        "https://raw.githubusercontent.com/CaiBai-Fish/forza-gallery-sync/hashes/hashes.json";
+    private const string HashesBranchBase =
+        "https://raw.githubusercontent.com/CaiBai-Fish/forza-gallery-sync/hashes";
 
     /// <summary>发布包名（构造下载地址与在哈希清单里查表都用它）。</summary>
     private static string ArtifactName(string version) => $"ForzaGallerySync-{version}-win-x64.zip";
 
     /// <summary>
-    /// 取得更新包的期望 SHA256。两个来源，按"会不会被限流"排序：
+    /// 取得更新包的期望 SHA256。三个来源，按"会不会被限流"排序：
     ///
-    /// 1. **`hashes` 分支的清单**（优先）：CI 生成并发布到独立分支，用 raw URL 取静态文件，
-    ///    **不消耗 GitHub API 配额**——这是日常路径，不会因为限流而失败。
-    /// 2. **Releases API 的 `digest` 字段**（兜底）：平台计算、与上传字节绑定，同样权威，
-    ///    但要走 API（匿名 60 次/小时），因此只在前者不可用时使用。
+    /// 1. **`hashes` 分支的 `<版本>.txt`**（优先）：规范清单，静态文件，不消耗 API 配额；
+    /// 2. **`hashes` 分支的 `hashes.json`**（次选）：同样静态，JSON 解析；
+    /// 3. **Releases API 的 `digest` 字段**（兜底）：平台计算、与上传字节绑定，同样权威，
+    ///    但要走 API（匿名 60 次/小时），因此只在前两者不可用时使用。
     ///
-    /// 两个来源都拿不到时返回 null，由调用方决定是否放行（当前策略：跳过校验但记告警）。
+    /// 三个来源都拿不到时返回 null。**调用方不得据此放行安装**（见
+    /// <see cref="DownloadVerifiedAsync"/>）：拿不到清单就不自动安装，只留手动下载出口。
     /// </summary>
     public static async Task<string?> TryGetExpectedHashAsync(string version, CancellationToken token)
     {
-        var fromManifest = await TryGetHashFromHashesBranchAsync(version, token);
-        if (fromManifest is not null) return fromManifest;
+        var fromTxt = await TryGetHashFromManifestTextAsync(version, token);
+        if (fromTxt is not null) return fromTxt;
 
+        var fromJson = await TryGetHashFromHashesJsonAsync(version, token);
+        if (fromJson is not null) return fromJson;
+
+        Logger.Warn($"hashes 分支的两个清单都取不到 {ArtifactName(version)} 的哈希，回退 Release API digest");
         return await TryGetHashFromApiAsync(version, token);
+    }
+
+    /// <summary>
+    /// 从 hashes 分支的 `<版本>.txt` 取哈希：每行 `<sha256>  <文件名>`（两个空格分隔）。
+    /// 跳过空行与 `#` 注释行。
+    /// </summary>
+    private static async Task<string?> TryGetHashFromManifestTextAsync(string version, CancellationToken token)
+    {
+        var artifact = ArtifactName(version);
+        var url = $"{HashesBranchBase}/{version}.txt";
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("forza-gallery-sync-updater");
+
+            var text = await http.GetStringAsync(url, token);
+            foreach (var rawLine in text.Split('\n'))
+            {
+                var line = rawLine.Trim();
+                if (line.Length == 0 || line.StartsWith('#')) continue;
+
+                // "<sha256>  <文件名>"：以空白切分，最后一列是文件名，第一列是哈希
+                var parts = line.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length < 2) continue;
+
+                var fileName = string.Join(' ', parts[1..]);
+                if (!string.Equals(fileName, artifact, StringComparison.OrdinalIgnoreCase)) continue;
+
+                if (parts[0].Length != 64)
+                {
+                    Logger.Warn($"清单 {version}.txt 里 {artifact} 的哈希长度异常（{parts[0].Length}）");
+                    return null;
+                }
+
+                Logger.Info($"期望哈希（hashes/{version}.txt）{artifact} = {parts[0]}");
+                return parts[0].ToLowerInvariant();
+            }
+
+            Logger.Warn($"清单 {version}.txt 里没有 {artifact}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"取 hashes/{version}.txt 失败：{ex.Message}");
+            return null;
+        }
     }
 
     /// <summary>从 Releases API 的 digest 字段取哈希。</summary>
@@ -102,7 +156,7 @@ public static class UpdateService
                     }
                 }
 
-                Logger.Warn($"Release 资产 {artifact} 没有 digest 字段，尝试 hashes 分支");
+                Logger.Warn($"Release 资产 {artifact} 没有 digest 字段");
                 return null;
             }
 
@@ -111,13 +165,13 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            Logger.Warn($"从 Release API 取哈希失败（将回退 hashes 分支）：{ex.Message}");
+            Logger.Warn($"从 Release API 取哈希失败：{ex.Message}");
             return null;
         }
     }
 
-    /// <summary>从 hashes 分支的清单取哈希（静态文件，不消耗 API 配额）。</summary>
-    private static async Task<string?> TryGetHashFromHashesBranchAsync(string version, CancellationToken token)
+    /// <summary>从 hashes 分支的 hashes.json 取哈希（静态文件，不消耗 API 配额）。</summary>
+    private static async Task<string?> TryGetHashFromHashesJsonAsync(string version, CancellationToken token)
     {
         var artifact = ArtifactName(version);
         try
@@ -125,45 +179,45 @@ public static class UpdateService
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
             http.DefaultRequestHeaders.UserAgent.ParseAdd("forza-gallery-sync-updater");
 
-            var json = await http.GetStringAsync(HashesUrl, token);
+            var json = await http.GetStringAsync($"{HashesBranchBase}/hashes.json", token);
             using var doc = System.Text.Json.JsonDocument.Parse(json);
 
             if (!doc.RootElement.TryGetProperty("artifacts", out var artifacts) ||
                 !artifacts.TryGetProperty(artifact, out var entry) ||
                 !entry.TryGetProperty("sha256", out var sha))
             {
-                Logger.Warn($"哈希清单里没有 {artifact}，将跳过哈希校验");
+                Logger.Warn($"hashes.json 里没有 {artifact}");
                 return null;
             }
 
             var value = sha.GetString();
             if (string.IsNullOrWhiteSpace(value))
             {
-                Logger.Warn($"哈希清单中 {artifact} 的 sha256 为空，将跳过哈希校验");
+                Logger.Warn($"hashes.json 中 {artifact} 的 sha256 为空");
                 return null;
             }
 
-            Logger.Info($"期望哈希（hashes 分支）{artifact} = {value}");
+            Logger.Info($"期望哈希（hashes/hashes.json）{artifact} = {value}");
             return value.Trim();
         }
         catch (Exception ex)
         {
-            Logger.Warn($"获取哈希清单失败（将跳过校验）：{ex.Message}");
+            Logger.Warn($"取 hashes/hashes.json 失败：{ex.Message}");
             return null;
         }
     }
 
     /// <summary>
     /// 计算文件的 SHA256 并与期望值比较。
-    /// <paramref name="expected"/> 为空（清单不可用）时返回 true 并记录告警——
-    /// 不因为拿不到清单就阻断整个更新流程。
+    /// <paramref name="expected"/> 为空时返回 false：**没有期望哈希就不算通过**，
+    /// 由调用方按"拿不到清单不自动安装"处理（宁可让用户手动下载，也不装来源不明的文件）。
     /// </summary>
     public static bool VerifyHash(string path, string? expected)
     {
         if (string.IsNullOrWhiteSpace(expected))
         {
-            Logger.Warn("未取得期望哈希，跳过校验（建议确认网络与哈希分支可用）");
-            return true;
+            Logger.Error("未取得期望哈希，无法校验更新包（拒绝自动安装）");
+            return false;
         }
 
         using var stream = File.OpenRead(path);
@@ -214,6 +268,10 @@ public static class UpdateService
     ///
     /// 顺序刻意如此：**先校验后解压**——只有在确认字节与 CI 发布的产物一致之后，
     /// 才把它交给解压与覆盖流程。
+    ///
+    /// 哈希策略（与全局约定一致）：
+    /// - 哈希不匹配 → 删除下载的文件并拒绝安装；
+    /// - **拿不到任何哈希清单 → 同样拒绝自动安装**，让用户走手动下载出口。
     /// </summary>
     /// <returns>已校验的 zip 路径与 zip 内需要剥离的顶层目录，可直接交给替换脚本。</returns>
     public static async Task<(string ZipPath, string StripPrefix)> DownloadVerifiedAsync(
@@ -221,13 +279,22 @@ public static class UpdateService
         IProgress<double>? progress,
         CancellationToken token)
     {
-        // 1) 先取期望哈希（清单不可用时返回 null，验证会被跳过并留下告警）
+        // 1) 先取期望哈希
         var expected = await TryGetExpectedHashAsync(version, token);
 
-        // 2) 下载
+        // 2) 下载（即使预期拿不到清单也先下，好让用户能拿到文件路径手动处理；
+        //    但绝不安装——见第 3 步）
         var zip = await DownloadAsync(version, progress, token);
 
-        // 3) 哈希校验：不一致必须删掉重下，绝不能拿去覆盖正在运行的程序
+        // 3) 哈希校验
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            Logger.Error($"未能取得 v{version} 的哈希清单，拒绝自动安装");
+            throw new UpdateException(
+                $"无法取得 v{version} 的哈希清单（hashes 分支的 {version}.txt / hashes.json 与 Release API 都不可用），"
+                + "为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。");
+        }
+
         if (!VerifyHash(zip, expected))
         {
             SafeDelete(zip);

@@ -244,7 +244,7 @@
                                Foreground="{ThemeResource AppBrandBrush}"
                                Visibility="{x:Bind VM.HasUpdateActionMsg, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-                    <TextBlock Text="自动更新会下载官方发布包并校验 SHA256，然后退出应用、覆盖程序文件并重启；程序目录不可写时会提示手动更新。"
+                    <TextBlock Text="自动更新会先确认、再下载官方发布包并校验 SHA256；校验通过才退出应用、覆盖程序文件并重启。哈希不匹配或拿不到官方清单时不会自动安装，只提供手动下载。"
                                Style="{StaticResource FootnoteTextStyle}"
                                Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 

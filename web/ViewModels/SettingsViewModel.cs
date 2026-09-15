@@ -361,16 +361,27 @@ public sealed class SettingsViewModel : ObservableObject
 
     public async Task LoadVersionAsync()
     {
+        // 权威来源是程序集信息（发布脚本注入，取自 pyproject.toml）；
+        // 后端版本只作兜底——内嵌 Python 包落后于 GUI 时不该显示旧版本号。
+        var fromAssembly = AppVersion.Current;
+        if (!string.IsNullOrWhiteSpace(fromAssembly))
+        {
+            Ui.Run(() => CurrentVersion = fromAssembly);
+        }
+
         try
         {
             var json = await PyBridge.Instance.CallJsonAsync("app_version");
             var res = Json.Deserialize<Dictionary<string, object?>>(json);
             var v = res?.GetValueOrDefault("version")?.ToString() ?? "";
-            Ui.Run(() => CurrentVersion = v);
+            if (string.IsNullOrWhiteSpace(fromAssembly) && !string.IsNullOrWhiteSpace(v))
+            {
+                Ui.Run(() => CurrentVersion = v);
+            }
         }
         catch
         {
-            // 版本获取失败忽略。
+            // 版本获取失败忽略（已有程序集版本可用）。
         }
     }
 
@@ -382,6 +393,19 @@ public sealed class SettingsViewModel : ObservableObject
         {
             var json = await PyBridge.Instance.CallJsonAsync("check_update");
             var info = Json.Deserialize<UpdateInfoModel>(json) ?? new UpdateInfoModel();
+
+            // 当前版本以程序集为准：Python 的 __version__ 只在程序集版本缺失时兜底，
+            // 否则内嵌包版本落后会让界面把"已是最新"显示成"有新版本"。
+            var myVersion = AppVersion.Current;
+            if (!string.IsNullOrWhiteSpace(myVersion))
+            {
+                info.Current = myVersion;
+                if (!string.IsNullOrWhiteSpace(info.Latest))
+                {
+                    info.HasUpdate = CompareVersions(info.Latest, myVersion) > 0;
+                }
+            }
+
             Ui.Run(() =>
             {
                 CurrentVersion = info.Current;
@@ -537,6 +561,37 @@ public sealed class SettingsViewModel : ObservableObject
             Downloading = false;
             OnPropertyChanged(nameof(CanDownloadUpdate));
         }
+    }
+
+    /// <summary>
+    /// 比较版本号（与后端 <c>updates._parse_version</c> 同规则）：
+    /// 忽略 <c>v</c> 前缀与 <c>-hash</c> 后缀，按数字段逐段比较，缺失段按 0。
+    /// </summary>
+    private static int CompareVersions(string a, string b)
+    {
+        static int[] Parts(string text)
+        {
+            var head = (text ?? "").TrimStart('v', 'V').Split('-', 2)[0];
+            var numbers = System.Text.RegularExpressions.Regex.Matches(head, @"\d+");
+            if (numbers.Count == 0) return new[] { 0 };
+
+            var result = new int[numbers.Count];
+            for (var i = 0; i < numbers.Count; i++)
+            {
+                _ = int.TryParse(numbers[i].Value, out result[i]);
+            }
+            return result;
+        }
+
+        var left = Parts(a);
+        var right = Parts(b);
+        for (var i = 0; i < Math.Max(left.Length, right.Length); i++)
+        {
+            var l = i < left.Length ? left[i] : 0;
+            var r = i < right.Length ? right[i] : 0;
+            if (l != r) return l.CompareTo(r);
+        }
+        return 0;
     }
 
     /// <summary>页面收到此事件后应退出应用，让替换脚本接管。</summary>

@@ -7,6 +7,39 @@
 > GitHub Actions（`.github/workflows/build-release.yml`）发布 Release 时，
 > 会自动读取本文件对应版本的章节作为发布说明。
 
+## [1.0.3] - 2026-09-15
+
+### 新增
+- **单实例限制**：同一登录会话内只允许一个窗口。重复启动时第二个实例**不建窗口**，
+  用 `RegisterWindowMessage` + `PostMessage(HWND_BROADCAST)` 唤醒已运行实例，
+  然后显式结束自己的进程（`Environment.Exit(0)`，退出码 0）。
+  - 唤醒时若窗口处于最小化状态会先还原；`SetForegroundWindow` 被系统前台锁挡下时
+    改用 Z 序置顶，并在日志里区分"被前台锁挡住"与"句柄失效"两种结果。
+  - 用 `Local\` 用户级命名互斥体，只限制当前登录会话；上一个实例被强杀时
+    按 `AbandonedMutexException` 处理（继续启动，而不是卡住）。
+- **版本探测扩为五路**：`releases/latest` API → `tags` API → `releases/latest` 的
+  302 跳转 → `tags` 页面 HTML → CHANGELOG 保底（自身再有 raw → blob 页面 → 本地副本三级回退）。
+  `api.github.com` 匿名请求按出口 IP 限流（60 次/小时），单一 API 路径实测经常直接 403。
+- **安装前确认对话框**：确认之后会退出应用并覆盖程序文件，对话框会说明哈希校验、
+  "只覆盖不删除"以及程序目录不可写时的替代做法。
+- 更新检查结果里新增 `probe_source`（本次命中的探测路径）与 `attempts`
+  （每一路的成功/失败与原因），便于排查"为什么走了某一路"。
+
+### 修复
+- **CI 无法发布哈希清单**（1.0.2 的修复无效）：runner 上 token 拼进 git remote URL 会被
+  `Password authentication is not supported` 拒绝，`gh auth setup-git` 又因需要
+  `/dev/tty` 而失败。改为用 REST API 单文件提交（`gh api --method PUT`），
+  只依赖 `contents:write` 权限；发布后再回读校验远端内容与本地哈希一致。
+- **拿不到哈希清单时不再放行安装**：原先"清单不可用 → 跳过校验但继续安装"，
+  现在按"拿不到清单不自动安装"处理，只给手动下载出口。
+- 哈希清单改为规范格式 `<版本>.txt`（每行 `<sha256>  <文件名>`，与 `sha256sum` 一致），
+  客户端优先读它，`hashes.json` 作为同分支的次选。
+- 更新说明（CHANGELOG 章节）改为独立获取：版本判断不再与"取不取得到发布说明"耦合，
+  走 API 路径时也能显示更新日志。
+- 探测失败时 `error` 里带全部路径的具体原因，并区分 403 / 超时 / 不可达。
+- 发布工作流增加 **tag 与工程版本号一致性校验**（不一致直接失败），
+  并交叉核对 `pyproject.toml` 与 `forza_sync/__init__.py` 的版本号。
+
 ## [1.0.2] - 2026-09-15
 
 ### 修复

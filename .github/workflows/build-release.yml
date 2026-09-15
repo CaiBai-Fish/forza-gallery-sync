@@ -55,6 +55,22 @@ jobs:
             # 手动触发：使用 版本号-短提交号 作为 tag
             $releaseTag = "$version-$shortSha"
           }
+
+          # 版本号只有一个来源：pyproject.toml。这里交叉核对后端包版本，
+          # 避免改了 pyproject 却忘了 __init__（界面显示的版本从程序集读，由 make-gui.ps1 从 $version 写入）。
+          $init = Get-Content forza_sync/__init__.py -Raw -Encoding utf8
+          if ($init -notmatch "__version__\s*=\s*`"$([regex]::Escape($version))`"") {
+            throw "版本号不一致：pyproject.toml 是 $version，但 forza_sync/__init__.py 不是"
+          }
+
+          # tag 与工程版本号必须一致，否则会发出对不上号的包（发版前拦截）
+          if ($env:GITHUB_REF_TYPE -eq "tag") {
+            $tagVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+            if ($tagVersion -ne $version) {
+              throw "tag ($($env:GITHUB_REF_NAME)) 与工程版本号 ($version) 不一致，请先把 pyproject.toml 的 version 改成 $tagVersion"
+            }
+            Write-Host "tag/版本一致性校验通过：$($env:GITHUB_REF_NAME) == $version"
+          }
           "VERSION=$version"        | Out-File -FilePath $env:GITHUB_ENV -Append
           "RELEASE_TAG=$releaseTag" | Out-File -FilePath $env:GITHUB_ENV -Append
           Write-Host "VERSION=$version  RELEASE_TAG=$releaseTag"
@@ -123,6 +139,28 @@ jobs:
           }
           Write-Host "python-runtime.zip: $($names.Count) entries (forza_sync + requests + playwright)"
 
+      - name: Verify version is embedded in the GUI binary
+        shell: pwsh
+        run: |
+          # 程序集里的版本号必须等于 pyproject.toml 的版本（make-gui.ps1 用 -Version 注入）。
+          # 这一步防的是"改了 pyproject 却忘了重新发布"→ 发出对不上号的包。
+          $exe = "web/dist/ForzaGallerySync-$($env:VERSION)-win-x64/forza-gallery-sync.exe"
+          if (-not (Test-Path $exe)) { throw "找不到发布出来的 exe: $exe" }
+
+          $info = (Get-Item $exe).VersionInfo
+          $embedded = ($info.FileVersion -split '\.')[0..2] -join '.'
+          Write-Host "FileVersion=$($info.FileVersion)  ProductVersion=$($info.ProductVersion)  期望=$($env:VERSION)"
+          if ($embedded -ne $env:VERSION) {
+            throw "GUI 程序集版本 ($($info.FileVersion)) 与工程版本号 ($($env:VERSION)) 不一致"
+          }
+
+          # 后端包版本也必须一致（界面显示的版本来自 forza_sync）
+          $init = Get-Content forza_sync/__init__.py -Raw -Encoding utf8
+          if ($init -notmatch "__version__\s*=\s*`"$([regex]::Escape($env:VERSION))`"") {
+            throw "forza_sync/__init__.py 的 __version__ 与 VERSION=$($env:VERSION) 不一致"
+          }
+          Write-Host "版本号一致性校验通过"
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -146,13 +184,21 @@ jobs:
 
       # 把产物哈希发布到独立的 `hashes` 分支：
       #   - 独立分支不会随 git clone 下到 working tree，仓库不会因历次哈希而膨胀；
-      #   - 客户端用 raw URL 直接取单个 JSON 校验下载到的更新包，不必下载整个产物清单；
-      #   - 用 force push 到固定的 hashes 分支，避免每个版本留一个分支。
+      #   - 客户端用 raw URL 直接取清单校验下载到的更新包，不消耗 GitHub API 配额；
+      #   - 每版两个清单：`<版本>.txt`（规范格式：每行 "<sha256>  <文件名>"）与
+      #     `hashes.json`（带版本与体积，供客户端优先读取）。
+      #
+      # 注意：**不要用 git push 更新该分支**。实测 runner 上 token 拼进 URL 会被
+      # "Password authentication is not supported" 拒绝，`gh auth setup-git` 又需要
+      # /dev/tty 而失败（bash: /dev/tty: No such device or address）。改用 REST API
+      # 单文件提交，只需要 contents:write 权限，不依赖 git 凭证配置。
       - name: Publish artifact hashes to `hashes` branch
         shell: pwsh
         run: |
+          $ErrorActionPreference = "Stop"
           $version = $env:VERSION
           $records = [ordered]@{}
+          $manifestLines = @()
           $files = @()
           $files += Get-ChildItem "web/dist/ForzaGallerySync-*-win-x64.zip"
           $cli = Get-Item "cli-dist/forza-sync.exe" -ErrorAction SilentlyContinue
@@ -164,40 +210,71 @@ jobs:
               sha256 = $h
               size   = $f.Length
             }
+            # 规范格式：两个空格分隔（与 sha256sum 输出一致）
+            $manifestLines += "$h  $($f.Name)"
             Write-Host "$($f.Name)  $h"
           }
+          if ($manifestLines.Count -eq 0) { throw "没有任何产物可计算哈希" }
 
           $payload = [ordered]@{
             version   = $version
             generated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
             artifacts = $records
           }
-          $json = ($payload | ConvertTo-Json -Depth 5)
+
           # 无 BOM：客户端按 UTF-8 解析，BOM 会破坏 JSON 解析
+          $json = ($payload | ConvertTo-Json -Depth 5)
           $jsonPath = Join-Path $env:RUNNER_TEMP "hashes.json"
           [System.IO.File]::WriteAllText($jsonPath, $json, (New-Object System.Text.UTF8Encoding($false)))
-          Write-Host "--- hashes.json ---"
-          Write-Host $json
 
-          # 推到 hashes 分支：先在独立目录建历史，再 force push 覆盖。
-          # 认证走 gh CLI 配置 git 凭证——直接把 token 拼进 URL 会被
-          # "Password authentication is not supported" 拒绝（实测在 runner 上失败）。
-          $work = Join-Path $env:RUNNER_TEMP "hashes-branch"
-          New-Item -ItemType Directory -Force -Path $work | Out-Null
-          Push-Location $work
-          git init --quiet
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git config credential.helper ""
-          gh auth setup-git
-          Copy-Item $jsonPath "hashes.json"
-          git add hashes.json
+          $txtPath = Join-Path $env:RUNNER_TEMP "$version.txt"
+          $txt = ($manifestLines -join "`n") + "`n"
+          [System.IO.File]::WriteAllText($txtPath, $txt, (New-Object System.Text.UTF8Encoding($false)))
+
+          Write-Host "--- $version.txt ---"
+          Write-Host $txt
+
+          # 上传一个文件到 hashes 分支：已存在时必须带上现有 blob 的 sha
+          function Publish-File {
+            param([string]$LocalPath, [string]$RepoPath, [string]$Message)
+
+            $existingSha = $null
+            try {
+              $existingSha = (gh api "repos/$env:GITHUB_REPOSITORY/contents/${RepoPath}?ref=hashes" --jq '.sha' 2>$null)
+            } catch {
+              $existingSha = $null
+            }
+            if ([string]::IsNullOrWhiteSpace($existingSha)) { $existingSha = $null }
+
+            $content = [Convert]::ToBase64String([IO.File]::ReadAllBytes($LocalPath))
+            $body = [ordered]@{
+              message = $Message
+              content = $content
+              branch  = "hashes"
+            }
+            if ($existingSha) { $body["sha"] = $existingSha }
+
+            $bodyPath = Join-Path $env:RUNNER_TEMP "gh-body.json"
+            [IO.File]::WriteAllText($bodyPath, ($body | ConvertTo-Json -Compress), (New-Object System.Text.UTF8Encoding($false)))
+
+            gh api --method PUT "repos/$env:GITHUB_REPOSITORY/contents/$RepoPath" --input $bodyPath | Out-Null
+            if ($LASTEXITCODE -ne 0) { throw "发布 $RepoPath 到 hashes 分支失败（gh exit $LASTEXITCODE）" }
+            Write-Host "已发布 $RepoPath（$(if ($existingSha) { "更新 $($existingSha.Substring(0,7))" } else { "新建" })）"
+          }
+
           $tag = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } else { $version }
-          git commit --quiet -m "hashes: $tag"
-          git remote add origin "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY"
-          git push --quiet --force origin "HEAD:refs/heads/hashes"
-          Pop-Location
-          Write-Host "hashes 分支已更新（$tag）"
+          $msg = "hashes: $tag"
+          Publish-File -LocalPath $txtPath  -RepoPath "$version.txt"  -Message $msg
+          Publish-File -LocalPath $jsonPath -RepoPath "hashes.json"  -Message $msg
+
+          # 回读校验：确认远端内容与本地算出的哈希一致（不看返回值，直接问 API）
+          $verifyTxt = gh api "repos/$env:GITHUB_REPOSITORY/contents/$version.txt?ref=hashes" --jq '.content'
+          $decoded = [Text.Encoding]::UTF8.GetString([Convert]::FromBase64String(($verifyTxt -replace '\s', '')))
+          $expectedFirst = $manifestLines[0]
+          if (-not $decoded.Contains($expectedFirst)) {
+            throw "$version.txt 回读校验失败：远端内容与本地哈希不一致"
+          }
+          Write-Host "$version.txt 已回读校验通过（$($manifestLines.Count) 行）"
         env:
           GH_TOKEN: ${{ github.token }}
 
