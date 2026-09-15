@@ -33,6 +33,39 @@ if (-not (Test-Path (Join-Path $PythonEnv "python313.dll"))) {
     throw "Invalid Python home: $PythonEnv (python313.dll not found)"
 }
 
+# ---- Preflight: the source environment must carry every runtime dependency ----
+# Why this is a hard failure and not a warning: without playwright the packaged app
+# silently loses "browser login" (the feature just errors at runtime), and the only
+# sign used to be a warning at the end of this script -- which was easy to skim past
+# (it shipped a runtime without playwright twice). Fail here with the exact fix instead.
+Write-Host "==> Verifying source environment"
+$required = @{
+    "requests"   = "core HTTP client"
+    "urllib3"    = "requests dependency chain"
+    "certifi"    = "requests dependency chain"
+    "idna"       = "requests dependency chain"
+    "charset_normalizer" = "requests dependency chain"
+    "playwright" = "browser login (one-click sign-in)"
+    "greenlet"   = "playwright sync API"
+    "pyee"       = "playwright event emitter"
+}
+$pyExe = Join-Path $PythonEnv "python.exe"
+$missing = @()
+foreach ($name in $required.Keys) {
+    $probe = "import importlib.util,sys; sys.exit(0 if importlib.util.find_spec('$name') else 1)"
+    & $pyExe -c $probe 2>$null
+    if ($LASTEXITCODE -ne 0) {
+        $missing += $name
+        Write-Host ("    MISSING: {0} ({1})" -f $name, $required[$name])
+    }
+}
+if ($missing.Count -gt 0) {
+    throw ("源环境缺少依赖：{0}`n" +
+           "请在打包用环境里安装后重试： & '{1}' -m pip install -r requirements.txt" -f
+           ($missing -join ", "), $pyExe)
+}
+Write-Host "    OK: $($required.Count) 个依赖齐备（含 playwright）"
+
 if (Test-Path $stageDir) { Remove-Item $stageDir -Recurse -Force }
 New-Item -ItemType Directory -Force -Path $stageDir | Out-Null
 
@@ -95,21 +128,27 @@ Write-Host "==> Compress ..."
 if (Test-Path $zipPath) { Remove-Item $zipPath -Force }
 Compress-Archive -Path "$stageDir/*" -DestinationPath $zipPath -Force
 
-# ---- sanity check: the archive must carry forza_sync, should carry playwright ----
+# ---- sanity check: 归档必须带上 forza_sync、requests 与 playwright ----
+# 注意：zip 条目用的是**反斜杠**分隔符（`Compress-Archive` 的行为），
+# 所以匹配要写成 `[\\/]`；只写 `/` 会全部匹配不到、把"其实有"误判成"缺失"（实测踩过）。
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $archive = [IO.Compression.ZipFile]::OpenRead($zipPath)
 $entryNames = @($archive.Entries | ForEach-Object { $_.FullName })
 $archive.Dispose()
 
-if (-not ($entryNames -match '^forza_sync[\\/]')) {
-    throw "Runtime zip is missing the forza_sync package: $zipPath"
+function Assert-Bundled([string[]]$names, [string]$pattern, [string]$label) {
+    if (-not ($names -match $pattern)) {
+        throw "Runtime zip 缺少 $label（$zipPath）。请在打包用环境里安装后重新打包。"
+    }
+    Write-Host "    OK: $label"
 }
-if ($entryNames -match 'playwright[\\/]driver[\\/]node\.exe$') {
-    Write-Host "==> Verify: playwright bundled ($($entryNames.Count) entries) - browser login available"
-} else {
-    Write-Warning ("playwright is NOT bundled in $zipPath - the packaged app cannot do browser login. " +
-        "Run 'pip install playwright' in the build environment and rebuild.")
-}
+
+Write-Host "==> Verify archive contents ($($entryNames.Count) entries)"
+Assert-Bundled $entryNames '^forza_sync[\\/]' 'forza_sync 包'
+Assert-Bundled $entryNames 'site-packages[\\/]requests[\\/]' 'requests'
+Assert-Bundled $entryNames 'site-packages[\\/]playwright[\\/]' 'playwright'
+Assert-Bundled $entryNames 'site-packages[\\/]playwright[\\/]driver[\\/]node\.exe$' 'playwright driver (node.exe)'
+Write-Host "==> 浏览器登录可用（playwright 已随运行时打包）"
 
 # Optional: also emit the extracted runtime directory (handy for local debugging)
 if ($ExtractTo) {
