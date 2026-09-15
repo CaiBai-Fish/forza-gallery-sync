@@ -135,8 +135,7 @@
                         </StackPanel>
                     </Grid>
 
-                    <ToggleSwitch x:Uid="SettingsPage_Header_00"
-                                  OnContent="正常校验"
+                    <ToggleSwitch x:Uid="SettingsPage_OnContent_00"
                                   OffContent="关闭（自签名证书时可绕过）"
                                   IsOn="{x:Bind VM.VerifySsl, Mode=TwoWay}" />
                 </StackPanel>
@@ -235,8 +234,7 @@
                     </StackPanel>
 
                     <!-- 增量更新只在"安装程序方式不可用"时作为回退，因此开关名改成回退策略 -->
-                    <ToggleSwitch x:Uid="SettingsPage_Header_01"
-                                  OnContent="只下载变化的文件"
+                    <ToggleSwitch x:Uid="SettingsPage_OnContent_01"
                                   OffContent="下载完整包"
                                   IsOn="{x:Bind VM.PreferIncremental, Mode=TwoWay}"
                                   Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />

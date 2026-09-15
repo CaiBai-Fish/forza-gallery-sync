@@ -52,8 +52,7 @@
                         </StackPanel>
 
                         <!-- 强制重下 -->
-                        <ToggleSwitch x:Uid="SyncPage_Header_00"
-                                      OnContent="覆盖本地已存在的文件"
+                        <ToggleSwitch x:Uid="SyncPage_OnContent_00"
                                       OffContent="跳过已下载的照片"
                                       IsOn="{x:Bind VM.Force, Mode=TwoWay}" />
 

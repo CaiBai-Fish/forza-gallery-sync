@@ -32,24 +32,31 @@ public static class StringLocalizer
     private static ResourceLoader Loader => _loader ??= new ResourceLoader();
 
     /// <summary>
-    /// 取一条文案。缺失时返回键名本身（而不是空串或抛异常）——
-    /// 界面上会明显看出是哪个键漏了，便于定位，同时不影响应用运行。
+    /// 取一条**界面文案**。
+    ///
+    /// 资源名必须带属性后缀：XAML 的 <c>x:Uid="K"</c> 会去找 <c>K.Text</c> 这样的名字，
+    /// 而 PRI 里不可能同时存在 <c>K</c> 与 <c>K.Text</c>（点号是路径分隔符，
+    /// 两者并存会报 PRI175/PRI278「实体同时被定义为资源和范围」）。
+    /// 所以资源统一带后缀，C# 这边也按 <c>K.Text</c> 取。
     /// </summary>
-    public static string Get(string key)
+    /// <param name="key">裸键，如 <c>MainWindow_Title_00</c>；后缀由本方法补。</param>
+    /// <param name="suffix">属性后缀，默认 Text（对应 XAML 的 Text 属性）。</param>
+    public static string Get(string key, string suffix = "Text")
     {
         if (string.IsNullOrEmpty(key)) return "";
 
+        var resourceName = key.Contains('.') ? key : $"{key}.{suffix}";
         try
         {
-            var value = Loader.GetString(key);
+            var value = Loader.GetString(resourceName);
             if (!string.IsNullOrEmpty(value)) return value;
 
-            Logger.Warn($"i18n 缺键：{key}（已按原样显示；请在 Strings\\zh-CN 与 en-us 里补上）");
+            Logger.Warn($"i18n 缺键：{resourceName}（已按原样显示；请在 Strings\\zh-CN 与 en-us 里补上）");
             return key;
         }
         catch (Exception ex)
         {
-            Logger.Warn($"i18n 取值失败：{key}：{ex.Message}");
+            Logger.Warn($"i18n 取值失败：{resourceName}：{ex.Message}");
             return key;
         }
     }

@@ -1,4 +1,4 @@
-<Window x:Uid="MainWindow_Title_00"
+<Window
     x:Class="ForzaGallerySync.MainWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">

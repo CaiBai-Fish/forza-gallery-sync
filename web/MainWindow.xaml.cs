@@ -26,7 +26,14 @@ public sealed partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        Title = "Forza Gallery Sync 控制台";
+        // 窗口标题走 C# 而不是 XAML 的 x:Uid：给 <Window> 加 x:Uid 会在启动时抛
+        // XamlParseException「Failed to assign to property 'Microsoft.UI.Xaml.Window.Title'」
+        // —— Window 不是 FrameworkElement，x:Uid 的赋值机制对它不生效（实测踩过，应用直接起不来）。
+        //
+        // 取不到资源时用下面的默认值兜底，**不要回退成键名**：窗口标题显示
+        // "MainWindow_Title_00" 对用户毫无意义（这一点踩过），宁可退回中文默认标题。
+        var title = StringLocalizer.Get("MainWindow_Title_00", "Title");
+        Title = title == "MainWindow_Title_00" ? "Forza Gallery Sync 控制台" : title;
 
         ExtendsContentIntoTitleBar = true;
         SetTitleBar(AppTitleBar);

@@ -148,14 +148,42 @@ RESW_TEMPLATE = """<?xml version="1.0" encoding="utf-8"?>
 <root>
   <!--
     生成的界面文案文件（由 tools/i18n_apply.py 从 web/i18n-map.json 生成）。
-    键名规则：<模块>_<属性>_<序号>，与 Strings/<其它语言>/Resources.resw 必须一一对应。
 
-    ⚠️ 不要手工只改一个语言：中英两侧要同步改。
-    ⚠️ 新增界面文案时，重新跑一遍 tools/i18n_apply.py（它会从 XAML 重新抽取并补键）。
+    ⚠️ 资源名必须带**属性后缀**：x:Uid="K" 时 WinUI 会去找 "K.Text" / "K.Content" /
+    "K.PlaceholderText" …（后缀就是它在 XAML 里要设的那个属性名）。
+    早期版本生成的是裸键 "K"，WinUI 找不到对应属性 → **所有 x:Uid 文案渲染成空白**
+    （截图一看就是导航栏和页面标题全没了），这是本项目踩过的最隐蔽的一次：
+    UI Automation 检查只会显示"文本为空"而不报错，所以必须实际截图确认。
+
+    后缀按原属性映射：<模块>_<属性>_<序号> 里的中段就是属性名，转小写后作后缀即可
+    （Tooltip / Header / OnContent / OffContent / PlaceholderText 都直接对应属性名）。
   -->
 {items}
 </root>
 """
+
+# 键名中段（属性）→ x:Uid 需要的属性后缀
+ATTR_SUFFIX = {
+    "Text": "Text",
+    "Content": "Content",
+    "Header": "Header",
+    "Title": "Title",
+    "PlaceholderText": "PlaceholderText",
+    "OnContent": "OnContent",
+    "OffContent": "OffContent",
+    "Tooltip": "ToolTipService.ToolTip",
+}
+
+
+def key_to_resource_name(key: str) -> str:
+    """MainWindow_Content_01 → MainWindow_Content_01.Content（供 x:Uid 使用）。
+
+    裸键是给 C# 的 StringLocalizer 用的；XAML 的 x:Uid 必须带属性后缀。
+    """
+    parts = key.rsplit("_", 2)          # [模块, 属性, 序号]
+    attr = parts[1] if len(parts) == 3 else "Text"
+    suffix = ATTR_SUFFIX.get(attr, "Text")
+    return f"{key}.{suffix}"
 
 
 def esc(text: str) -> str:
@@ -163,8 +191,17 @@ def esc(text: str) -> str:
 
 
 def build_resw(pairs: list[tuple[str, str]], note: str) -> str:
+    """只生成**带属性后缀**的资源名（K.Text / K.Content / …）。
+
+    为什么不是"裸键 + 带后缀"两份：PRI 会把点号当路径分隔符，
+    `K` 与 `K.Text` 同时存在时 K 既是资源又是作用域 → 编译直接失败
+    （PRI175 / PRI278「实体同时被定义为资源和范围，这是不允许的」，实测踩过）。
+
+    所以统一用带后缀的名字：XAML 的 x:Uid="K" 天然找 K.<属性>；
+    C# 侧也用同一个名字取（见 StringLocalizer.GetForUi，会把键转成 K.Text）。
+    """
     items = "\n".join(
-        f'  <data name="{k}" xml:space="preserve">\n    <value>{esc(v)}</value>\n  </data>'
+        f'  <data name="{key_to_resource_name(k)}" xml:space="preserve">\n    <value>{esc(v)}</value>\n  </data>'
         for k, v in pairs
     )
     return RESW_TEMPLATE.format(items=items)
@@ -223,6 +260,14 @@ def main() -> int:
         chunks: list[tuple[int, int, str]] = []            # (start, end, replacement)
         for m in tag_re.finditer(text):
             tag = m.group(0)
+
+            # <Window> 不能注入 x:Uid：Window 不是 FrameworkElement，x:Uid 的赋值机制
+            # 对它不生效，启动时直接抛
+            # 「Failed to assign to property 'Microsoft.UI.Xaml.Window.Title'」→ 应用起不来。
+            # 窗口标题改由 MainWindow.xaml.cs 用 StringLocalizer 设置。
+            if re.match(r"<\s*Window\b", tag):
+                continue
+
             attrs = [am for am in attr_re.finditer(tag) if re.search(r"[\u4e00-\u9fff]", am.group(2))]
             if not attrs:
                 continue
