@@ -7,6 +7,15 @@
 > GitHub Actions（`.github/workflows/build-release.yml`）发布 Release 时，
 > 会自动读取本文件对应版本的章节作为发布说明。
 
+## [1.0.2] - 2026-09-15
+
+### 修复
+- **哈希来源优先级纠正**：`hashes` 分支（静态文件、不消耗 GitHub API 配额）改为优先，
+  Releases API 的 `digest` 仅在其不可用时兜底。API 有 60 次/小时的匿名限流，
+  原先的优先顺序会在额度用尽时把校验拖到兜底路径上。
+- **CI 的 hashes 发布步骤认证失败**：把 token 拼进 git remote URL 会被
+  `Password authentication is not supported` 拒绝，改用 `gh auth setup-git` 配置凭证。
+
 ## [1.0.1] - 2026-09-15
 
 ### 新增
