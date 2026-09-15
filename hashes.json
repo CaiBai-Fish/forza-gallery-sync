@@ -1,17 +1,17 @@
 {
-  "version": "1.0.4",
-  "generated": "2026-09-15T13:19:16Z",
+  "version": "1.0.5",
+  "generated": "2026-09-15T13:45:00Z",
   "artifacts": {
-    "ForzaGallerySync-1.0.4-win-x64.zip": {
-      "sha256": "8302da2f72a840299f4e5ca9630588fcbd6099c706c9aff87d2d12438946f862",
-      "size": 129125259
+    "ForzaGallerySync-1.0.5-win-x64.zip": {
+      "sha256": "17062f8c95b19ab6e30bab639e5cd4671928688dcc7ffac22019f6e7bda7c981",
+      "size": 129125321
     },
-    "ForzaGallerySync-1.0.4-setup.exe": {
-      "sha256": "a9733907dd962448c5086f767f38f8975532884592d22d891752040dd1aea819",
-      "size": 119400944
+    "ForzaGallerySync-1.0.5-setup.exe": {
+      "sha256": "f6e8f8492f5f342187b6ff2451082b3fd03d79e485e45ffed93adb465d42bbde",
+      "size": 119401174
     },
     "forza-sync.exe": {
-      "sha256": "1bb552b8d961c9ef681209f701b8161983bd53b06d5c2510083c0f6a420c57a8",
+      "sha256": "21c0e6a19c4ee83d0dc118dab512b549441fca061dbf5f9e159241bfa2363179",
       "size": 38110720
     }
   }
