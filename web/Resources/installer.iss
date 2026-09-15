@@ -223,7 +223,7 @@ begin
       Caption := '包含登录凭据、照片索引数据库与下载记录。' + #13#10 +
                  '实际位置：' + #13#10 +
                  '  %APPDATA%\forza-sync\config.json' + #13#10 +
-                 '  %APPDATA%\forza-sync\forza_sync.db' + #13#10 +
+                 '  ' + ExpandConstant('{app}') + '\forza_sync.db' + #13#10 +
                  '（你的照片文件在你自己指定的下载目录里，不受此选项影响。）';
     end;
 
@@ -321,6 +321,9 @@ end;
 // 用户勾选"删除用户数据"时执行清理。
 // 放在 usUninstall 阶段：此时程序文件尚未开始删除，而决策已经拿到。
 procedure CurUninstallStepChanged(CurUninstallStep: TUninstallStep);
+var
+  I: Integer;
+  DbFile, DbSuffix: String;
 begin
   if CurUninstallStep = usUninstall then
   begin
@@ -330,6 +333,28 @@ begin
       // 程序目录不可写时配置管理器会退到 {localappdata}\forza-sync，两处都清，
       // 避免"删了数据但看起来还在生效"。
       DelTree(ExpandConstant('{localappdata}\forza-sync'), True, True, True);
+
+      // 数据库按设计放在程序目录（便于随目录整体携带），旧版本还可能把它留在
+      // 配置目录里，所以配置目录已由上面的 DelTree 覆盖，这里处理程序目录。
+      // {app} 在卸载器里展开为实际安装目录，路径拼接是安全的。
+      //
+      // 这里不能 DelTree({app})：程序文件这时尚未删除，清空该目录会让卸载器
+      // 之后写 unins000.dat 失败，反而把卸载搞坏。
+      for I := 0 to 2 do
+      begin
+        case I of
+          0: DbSuffix := '';
+          1: DbSuffix := '-wal';
+          2: DbSuffix := '-shm';
+        end;
+        DbFile := ExpandConstant('{app}') + '\forza_sync.db' + DbSuffix;
+        if FileExists(DbFile) then
+        begin
+          if not DeleteFile(DbFile) then
+            MsgBox('无法删除数据库文件（可能仍被其它程序占用）：' + #13#10 + DbFile,
+                   mbError, MB_OK);
+        end;
+      end;
     end;
   end;
 end;

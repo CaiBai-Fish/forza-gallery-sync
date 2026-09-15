@@ -9,6 +9,24 @@
 
 ## [未发布]
 
+### 修复
+- **卸载时勾选"删除用户数据"不会删掉照片索引库**：数据库按设计放在**程序目录**
+  （`<安装目录>\forza_sync.db`，便于随目录整体携带），但卸载逻辑只清
+  `%APPDATA%\forza-sync` 与 `%LOCALAPPDATA%\forza-sync`，于是数据库被留在盘上——
+  用户以为数据已删除，实际仍然存在。卸载日志里的
+  `Failed to delete directory (145)`（145 = 目录非空）就是这个残留导致的。
+  现在 `usUninstall` 阶段会一并删除 `{app}\forza_sync.db` 及其 `-wal` / `-shm`
+  附属文件；删除失败（被占用）时给出明确提示而不是静默跳过。
+  卸载对话框列出的数据位置也同步改为实际路径（原先写的是 `%APPDATA%` 下的旧位置）。
+  实测：勾选删除后数据库与配置全部清除、程序目录随之删净（修复前该目录因残留数据库而残留）。
+
+### 新增（工具）
+- `tools/verify_release_hashes.py <版本>`：把 `hashes` 分支的清单与 Release 上的实际文件
+  逐字节核对 SHA-256（客户端自动更新比对的正是这些值），发布后一条命令即可确认不会 404 / 拒装。
+- `tools/check_runtime_zip.py` / `tools/check_extracted_runtime.py`：运行时归档与解压结果的
+  依赖断言（见 1.0.4 的"修复"）。
+- `tools/inspect_db.py` / `tools/dump_db.py`：检查索引库是否含用户数据及内容，便于判断残留数据能否清理。
+
 ## [1.0.4] - 2026-09-15
 
 ### 变更
