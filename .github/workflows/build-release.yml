@@ -88,8 +88,11 @@ jobs:
           $section = if ($m.Success) { $m.Groups[1].Value.Trim() } else { "" }
 
           $assets = @(
-            "- GUI 版：ForzaGallerySync-$version-win-x64.zip（解压即用；首次运行自动准备 Python 运行时：程序目录为干净目录时解压到程序目录，否则解压到 %LOCALAPPDATA%\Programs\ForzaGallerySync）",
-            "- CLI 单文件：forza-sync.exe（Nuitka 编译，自包含）"
+            "- **安装程序（推荐）**：ForzaGallerySync-$version-setup.exe（向导式、免管理员，装到 %LOCALAPPDATA%\Programs\ForzaGallerySync，自带开始菜单/桌面快捷方式与标准卸载入口）",
+            "- 免安装版：ForzaGallerySync-$version-win-x64.zip（解压即用；首次运行自动准备 Python 运行时：程序目录为干净目录时解压到程序目录，否则解压到 %LOCALAPPDATA%\Programs\ForzaGallerySync）",
+            "- CLI 单文件：forza-sync.exe（Nuitka 编译，自包含）",
+            "",
+            "程序内置自动更新会优先下载并静默运行与本机形态匹配的安装程序；无法使用时回退到增量更新或完整包。"
           )
           $header = "## Forza Gallery Sync $version"
           $crlf = "`r`n"
