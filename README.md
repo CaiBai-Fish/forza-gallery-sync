@@ -181,10 +181,21 @@ powershell -ExecutionPolicy Bypass -File .\web\make-installer.ps1 `
 - **per-user 安装**（`PrivilegesRequired=lowest`）：装到 `%LOCALAPPDATA%\Programs\ForzaGallerySync`，
   不弹 UAC。这个位置可写，所以安装版同样支持内置自动更新。
 - **固定目录名**（不带版本号）：升级就是覆盖同一个目录，不会堆出多个版本目录。
-- 安装前由 Inno 自己提示关闭运行中的程序（不强行结束进程——用户可能正在同步）。
-- 卸载**保留用户数据**（`%APPDATA%\forza-sync` 的配置与照片索引库），只删程序本体。
+- **没有语言选择对话框**：`ShowLanguageDialog=auto` 按 Windows 界面语言自动匹配
+  （中文系统直接中文、英文系统英文），匹配不到才问；重装时沿用上次选择。
+- **安装程序自身单实例**（`SetupMutex`）：重复启动会提示已有安装在进行，不会两个安装程序
+  互相覆盖文件与卸载注册表项。程序正在运行时安装/卸载也会先提示（`AppMutex`）。
+- 快捷方式可选：开始菜单与桌面图标都是可勾选项（默认都建），取消勾选不会影响可卸载性
+  （仍可从「设置 → 应用」或安装目录里的 `unins000.exe` 卸载）。
+- **卸载时询问是否删除用户数据**（默认保留）：对话框会列出实际路径
+  （`%APPDATA%\forza-sync\config.json` 与 `forza_sync.db`），并说明**照片文件在下载目录里、
+  不受该选项影响**。勾选才删，不勾选就保留，方便重装后免于重新登录。
 - 简体中文语言文件在 `web/Resources/Languages/ChineseSimplified.isl`（官方 Inno 不自带中文）。
   缺这个文件或应用图标时，脚本会自动退回英文 / 默认图标，不让构建失败。
+
+验证脚本：`web/verify-installer.ps1` 会自动断言静默安装/卸载、卸载窗体控件齐全、
+取消卸载时数据保留等 12 项；勾选删除数据那条分支不做自动化（原因见脚本头部注释），
+需人工确认。
 
 ### 已知限制
 

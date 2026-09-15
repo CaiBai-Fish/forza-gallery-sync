@@ -21,6 +21,22 @@
   - 新增 `web/make-installer.ps1` 与 `web/Resources/installer.iss`；简体中文语言文件
     `web/Resources/Languages/ChineseSimplified.isl` 随仓库提供（官方 Inno 不自带中文），
     缺失时自动退回英文界面，不让构建失败。
+  - **语言选择对话框默认不再弹出**：`ShowLanguageDialog=auto` + `LanguageDetectionMethod=uilanguage`
+    + `UsePreviousLanguage=yes`，按 Windows 界面语言自动匹配，匹配不到才问、重装沿用上次选择。
+    实测 zh-CN 系统启动 2 秒直进向导、界面为中文（不再多点一步）。
+  - **安装程序单实例**（Inno 官方 `SetupMutex`）：重复启动提示已有安装在进行，避免两个安装程序
+    互相覆盖程序文件与卸载注册表项。程序正在运行时安装/卸载由 `AppMutex` 拦截，
+    并额外提供"强制结束该程序并继续"的出口（官方 AppMutex 只提示、不处理）。
+    注意官方 `SetupMutex` 的检查发生在语言对话框之后，所以"两个实例同时停在语言选择界面"
+    是正常现象，不代表失效。
+  - 开始菜单快捷方式做成**可选项**（默认创建），桌面图标同样可选；取消勾选不影响可卸载性。
+  - **卸载时询问是否删除用户数据**（默认保留）：对话框列出实际路径
+    （`%APPDATA%\forza-sync\config.json` 与 `forza_sync.db`），并说明照片文件在下载目录里、
+    不受该选项影响。不勾选时保留，重装后免于重新登录。
+  - 新增 `web/verify-installer.ps1`：自动断言静默安装/卸载、卸载窗体控件齐全、
+    取消卸载时数据保留等 12 项。"勾选删除数据"那条分支不做自动化——Inno 的 `TSetupForm`
+    控件未暴露 UI Automation 的 Invoke/Toggle 模式，自动化只能按坐标点击，
+    而这会真的删掉用户的凭据与索引库，改由人工确认（脚本末尾打印步骤）。
 - **增量更新**：更新时不再每次都重下约 130 MB 的完整包，只下载**相对上一版真正变化**的文件。
   发布目录解压后约 269 MB，其中 Python 运行时 77 MB、.NET / Windows SDK 运行时 182 MB
   跨版本几乎不变；实测一次版本更新真正变化的只有应用自身那几个文件。
@@ -37,6 +53,9 @@
     "只覆盖、不删除"，并且不覆盖正在运行的更新脚本自身。
 
 ### 修复
+- **卸载程序会以 `Access violation` 失败且什么都不删**：卸载时把复选框控件的引用留到
+  `CurUninstallStepChanged` 里再读，而那个窗体此时已经被 `Free` 掉，引用成了悬空指针。
+  改为在窗体释放**之前**把用户的选择存进布尔变量。
 - **发布目录里缺 `Assets\`**：`<Content Include="Assets\**\*"/>` 只把图标文件放进 `bin`，
   **进不了 publish 输出**（publish 走 `ResolvedFileToPublish`），导致发布版的
   `Assets\app-icon.png` 不存在 —— 主窗口标题栏那个 `<Image Source="Assets/app-icon.png"/>`
