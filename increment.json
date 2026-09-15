@@ -1,8 +1,8 @@
 {
-    "version":  "1.0.5",
+    "version":  "1.0.6",
     "threshold":  262144,
-    "artifactPath":  "ForzaGallerySync-1.0.5-win-x64",
-    "generated":  "2026-09-15T13:44:31Z",
+    "artifactPath":  "ForzaGallerySync-1.0.6-win-x64",
+    "generated":  "2026-09-15T14:07:23Z",
     "files":  [
                   {
                       "path":  "clretwrc.dll",
@@ -115,26 +115,26 @@
                   {
                       "path":  "forza-gallery-sync.deps.json",
                       "size":  40985,
-                      "sha256":  "5d546292c71b66bd910fd8c0e0a0a59f6114b38d914a7a23bde886acfa2ba1f3"
+                      "sha256":  "1b776a8b9634be3f6d62185632fc01959cd8b4d056f3aaf0d6ec26e89a6684ad"
                   },
                   {
                       "path":  "forza-gallery-sync.dll",
                       "size":  63773696,
-                      "sha256":  "9bd25bc2cd92fbf43c674d2e9897eff4979fddf158cda283c16a9deddab0b415",
+                      "sha256":  "b2c9acfeca20ed6ab54178976c325688a9910a2aa3c054195aa5415982f4c6a1",
                       "name":  "ForzaGallerySync-inc-forza-gallery-sync.dll",
-                      "zipped":  62671350
+                      "zipped":  62671283
                   },
                   {
                       "path":  "forza-gallery-sync.exe",
                       "size":  412672,
-                      "sha256":  "4d8161e98c83feea37db3e72bdfc1249098596332832c8bad0bb1f28f01849e5",
+                      "sha256":  "6f4cd7d5834a2ec856ae98969f735a88637f6ca01d029580c3162bc48ebe468d",
                       "name":  "ForzaGallerySync-inc-forza-gallery-sync.exe",
-                      "zipped":  210841
+                      "zipped":  210842
                   },
                   {
                       "path":  "forza-gallery-sync.pdb",
-                      "size":  200084,
-                      "sha256":  "5678e4c95963a53091e5190033e759c24a89d46d022f42480cf5262801a33f6a"
+                      "size":  200024,
+                      "sha256":  "a518587c573508bdd6b9125d114c86b9639c4372c1cebba3eb55a32956888080"
                   },
                   {
                       "path":  "forza-gallery-sync.runtimeconfig.json",
@@ -1856,9 +1856,9 @@
               ],
     "containers":  [
                        {
-                           "name":  "ForzaGallerySync-inc-small-1.0.5",
+                           "name":  "ForzaGallerySync-inc-small-1.0.6",
                            "kind":  "small-files",
-                           "zipped":  6193290,
+                           "zipped":  6193351,
                            "files":  [
                                          "ColorCode.Core.dll",
                                          "ColorCode.WinUI.dll",
