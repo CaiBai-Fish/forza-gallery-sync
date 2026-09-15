@@ -209,7 +209,7 @@ public static class IncrementalUpdateService
             return null;
         }
 
-        progress?.Report((0, "正在比对本地文件…"));
+        progress?.Report((0, StringLocalizer.Get("Inc_CompareLocal")));
 
         var appDir = UpdateService.AppDirectory;
         var need = new List<IncrementFile>();
@@ -418,7 +418,7 @@ public static class IncrementalUpdateService
                 }
             }
 
-            progress?.Report((0.97, "正在打包增量更新…"));
+            progress?.Report((0.97, StringLocalizer.Get("Inc_Packing")));
             var zipPath = System.IO.Path.Combine(
                 System.IO.Path.GetTempPath(), $"ForzaGallerySync-incremental-{version}.zip");
             if (File.Exists(zipPath)) File.Delete(zipPath);

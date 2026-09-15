@@ -439,10 +439,10 @@ public sealed class SettingsViewModel : ObservableObject
     private static string BuildUpdateText(UpdateInfoModel info)
     {
         if (!string.IsNullOrEmpty(info.Error))
-            return $"检查更新失败：{info.Error}";
+            return StringLocalizer.Format("Update_CheckFailedDetail", info.Error);
         if (info.HasUpdate)
-            return $"发现新版本 v{info.Latest}（当前 v{info.Current}）";
-        return $"已是最新版本（v{info.Current}）";
+            return StringLocalizer.Format("Update_FoundNew", info.Latest, info.Current);
+        return StringLocalizer.Format("Update_UpToDate", info.Current);
     }
 
     /// <summary>最新版本的更新说明（取自 CHANGELOG 对应章节）。</summary>
@@ -525,7 +525,7 @@ public sealed class SettingsViewModel : ObservableObject
         _updateBusy = true;
         Downloading = true;
         DownloadProgress = 0;
-        UpdateActionMsg = $"正在准备更新 {LatestVersion}…";
+        UpdateActionMsg = StringLocalizer.Format("Update_Preparing", LatestVersion);
 
         try
         {
@@ -561,7 +561,7 @@ public sealed class SettingsViewModel : ObservableObject
                             Environment.UserDomainName + "\\" + Environment.UserName,
                             skipExeCheck: true, preserve: IncrementalUpdateService.ProtectedRelativePaths);
                         var check = UpdateService.SelfCheckScript(s);
-                        UpdateActionMsg = $"模拟模式（增量）：{check}";
+                        UpdateActionMsg = StringLocalizer.Format("Update_SimulateIncremental", check);
                         Logger.Info($"模拟模式（增量）结果：zip={inc.ZipPath}, {check}");
                         return;
                     }
@@ -585,7 +585,7 @@ public sealed class SettingsViewModel : ObservableObject
                 if (p >= 0)
                 {
                     DownloadProgress = Math.Round(p * 100, 0);
-                    UpdateActionMsg = $"正在下载完整包 {LatestVersion}… {DownloadProgress:F0}%";
+                    UpdateActionMsg = StringLocalizer.Format("Update_DownloadingFull", LatestVersion, DownloadProgress);
                 }
                 else
                 {
@@ -601,7 +601,7 @@ public sealed class SettingsViewModel : ObservableObject
                 var script = UpdateService.WriteScriptOnly(zip, prefix,
                     Environment.UserDomainName + "\\" + Environment.UserName);
                 var check = UpdateService.SelfCheckScript(script);
-                UpdateActionMsg = $"模拟模式：下载与哈希已校验；{check}";
+                UpdateActionMsg = StringLocalizer.Format("Update_SimulateBasic", check);
                 Logger.Info($"模拟模式结果：zip={zip}, prefix='{prefix}', {check}");
                 return;
             }
@@ -648,17 +648,17 @@ public sealed class SettingsViewModel : ObservableObject
             var dirOverride = isInstalled ? null : UpdateService.AppDirectory;
 
             Logger.Info(isInstalled
-                ? $"检测到安装版（注册表记录位置：{installedLocation}），安装程序将使用该目录"
-                : $"检测到免安装版，安装程序将装回当前目录：{dirOverride}");
+                ? StringLocalizer.Format("Update_InstalledMode", installedLocation)
+                : StringLocalizer.Format("Update_PortableMode", dirOverride));
 
-            UpdateActionMsg = $"正在下载安装程序 {LatestVersion}…";
+            UpdateActionMsg = StringLocalizer.Format("Update_DownloadingInstaller", LatestVersion);
 
             var progress = new Progress<double>(p => Ui.Run(() =>
             {
                 if (p >= 0)
                 {
                     DownloadProgress = Math.Round(p * 100, 0);
-                    UpdateActionMsg = $"正在下载安装程序 {LatestVersion}… {DownloadProgress:F0}%";
+                    UpdateActionMsg = StringLocalizer.Format("Update_DownloadingInstallerPct", LatestVersion, DownloadProgress);
                 }
                 else
                 {
@@ -674,7 +674,7 @@ public sealed class SettingsViewModel : ObservableObject
             {
                 var script = UpdateService.WriteInstallerScript(installer, dirOverride);
                 var check = UpdateService.SelfCheckScript(script);
-                UpdateActionMsg = $"模拟模式（安装程序）：下载与哈希已校验；{check}";
+                UpdateActionMsg = StringLocalizer.Format("Update_SimulateInstaller", check);
                 Logger.Info($"模拟模式（安装程序）结果：installer={installer}, dir={dirOverride ?? "(默认)"}, {check}");
                 return true;
             }

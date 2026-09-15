@@ -616,4 +616,97 @@
   <data name="GalleryPage_TooltipToggleInfo.ToolTipService.ToolTip" xml:space="preserve">
     <value>显示 / 收起照片信息</value>
   </data>
+  <data name="Upd_NoVersion.Text" xml:space="preserve">
+    <value>缺少目标版本号，无法构造下载地址。</value>
+  </data>
+  <data name="Upd_NoManifestZip.Text" xml:space="preserve">
+    <value>无法取得 v{0} 的哈希清单（hashes 分支的 {0}.txt / hashes.json 与 Release API 都不可用），为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。</value>
+  </data>
+  <data name="Upd_HashMismatch.Text" xml:space="preserve">
+    <value>更新包哈希校验失败，文件可能下载不完整或已被篡改，已删除。请重试；若反复失败请到 Releases 页手动下载。</value>
+  </data>
+  <data name="Upd_NoManifestInstaller.Text" xml:space="preserve">
+    <value>无法取得 {0} 的哈希清单（hashes 分支清单与 Release API 都不可用），为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。</value>
+  </data>
+  <data name="Upd_InstallerHashMismatch.Text" xml:space="preserve">
+    <value>安装程序哈希校验失败，文件可能下载不完整或已被篡改，已删除。请重试；若反复失败请到 Releases 页手动下载。</value>
+  </data>
+  <data name="Upd_DownloadFailed.Text" xml:space="preserve">
+    <value>下载失败：HTTP {0}。地址：{1}</value>
+  </data>
+  <data name="Upd_EmptyDownload.Text" xml:space="preserve">
+    <value>下载到的文件为空。</value>
+  </data>
+  <data name="Upd_NoPackage.Text" xml:space="preserve">
+    <value>更新包不存在。</value>
+  </data>
+  <data name="Upd_EmptyPackage.Text" xml:space="preserve">
+    <value>更新包是空的。</value>
+  </data>
+  <data name="Upd_NoExeInPackage.Text" xml:space="preserve">
+    <value>更新包里找不到 forza-gallery-sync.exe，可能下载到了错误的文件。</value>
+  </data>
+  <data name="Upd_CorruptPackage.Text" xml:space="preserve">
+    <value>更新包已损坏或不完整：{0}</value>
+  </data>
+  <data name="Upd_DownloadPackageFailed.Text" xml:space="preserve">
+    <value>下载更新包失败：{0}</value>
+  </data>
+  <data name="Upd_StartScriptFailed.Text" xml:space="preserve">
+    <value>启动更新脚本失败：{0}</value>
+  </data>
+  <data name="Upd_StartInstallScriptFailed.Text" xml:space="preserve">
+    <value>启动安装脚本失败：{0}</value>
+  </data>
+  <data name="Upd_BuildInstallScriptFailed.Text" xml:space="preserve">
+    <value>生成安装脚本失败：{0}</value>
+  </data>
+  <data name="Upd_BuildUpdateScriptFailed.Text" xml:space="preserve">
+    <value>生成更新脚本失败：{0}</value>
+  </data>
+  <data name="Upd_ScriptResourceMissing.Text" xml:space="preserve">
+    <value>找不到内嵌的脚本资源 {0}。</value>
+  </data>
+  <data name="Upd_ScriptResourceOpenFailed.Text" xml:space="preserve">
+    <value>无法打开内嵌的脚本资源 {0}。</value>
+  </data>
+  <data name="Upd_DirNotWritable.Text" xml:space="preserve">
+    <value>程序目录不可写（{0}）：{1}。请手动下载更新包替换。</value>
+  </data>
+  <data name="Inc_CompareLocal.Text" xml:space="preserve">
+    <value>正在比对本地文件…</value>
+  </data>
+  <data name="Inc_CompareLocalProgress.Text" xml:space="preserve">
+    <value>正在比对本地文件… {0}/{1}</value>
+  </data>
+  <data name="Inc_DownloadFile.Text" xml:space="preserve">
+    <value>正在下载增量文件 {0}/{1}… {2}/{3} MB</value>
+  </data>
+  <data name="Inc_DownloadSmall.Text" xml:space="preserve">
+    <value>正在下载小文件包（{0} 个文件，{1} MB）…</value>
+  </data>
+  <data name="Inc_Packing.Text" xml:space="preserve">
+    <value>正在打包增量更新…</value>
+  </data>
+  <data name="Inc_NoLocalDir.Text" xml:space="preserve">
+    <value>程序目录不存在：{0}</value>
+  </data>
+  <data name="Inc_MissingSmallFile.Text" xml:space="preserve">
+    <value>本地缺失的小文件不在任何容器里：{0}</value>
+  </data>
+  <data name="Inc_EmptyAsset.Text" xml:space="preserve">
+    <value>增量资产 {0} 是空包</value>
+  </data>
+  <data name="Inc_AssetDownloadFailed.Text" xml:space="preserve">
+    <value>下载 {0} 失败：HTTP {1}（{2}）</value>
+  </data>
+  <data name="Format_Dimension.Text" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="Format_TodayTime.Text" xml:space="preserve">
+    <value>今天 {0}</value>
+  </data>
+  <data name="Format_PhotoCount.Text" xml:space="preserve">
+    <value>{0} 张</value>
+  </data>
 </root>

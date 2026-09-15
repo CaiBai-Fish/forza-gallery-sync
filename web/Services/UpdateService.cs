@@ -342,7 +342,7 @@ public static class UpdateService
         {
             SafeDelete(zip);
             throw new UpdateException(
-                "更新包哈希校验失败，文件可能下载不完整或已被篡改，已删除。请重试；若反复失败请到 Releases 页手动下载。");
+                StringLocalizer.Get("Upd_HashMismatch"));
         }
 
         // 4) 结构校验：确认确实是本程序的发布包，并取得需要剥离的顶层目录
@@ -361,7 +361,7 @@ public static class UpdateService
     {
         if (string.IsNullOrWhiteSpace(version))
         {
-            throw new UpdateException("缺少目标版本号，无法构造下载地址。");
+            throw new UpdateException(StringLocalizer.Get("Upd_NoVersion"));
         }
 
         var artifact = SetupArtifactName(version);
@@ -431,7 +431,7 @@ public static class UpdateService
     {
         if (string.IsNullOrWhiteSpace(version))
         {
-            throw new UpdateException("缺少目标版本号，无法构造下载地址。");
+            throw new UpdateException(StringLocalizer.Get("Upd_NoVersion"));
         }
 
         var url = string.Format(ReleaseZipUrlFormat, version);
@@ -479,7 +479,7 @@ public static class UpdateService
 
             if (read == 0)
             {
-                throw new UpdateException("下载到的文件为空。");
+                throw new UpdateException(StringLocalizer.Get("Upd_EmptyDownload"));
             }
 
             Logger.Info($"更新包已下载: {target}（{read} 字节）");
@@ -507,13 +507,13 @@ public static class UpdateService
     /// </summary>
     public static string ValidateArchive(string zipPath)
     {
-        if (!File.Exists(zipPath)) throw new UpdateException("更新包不存在。");
+        if (!File.Exists(zipPath)) throw new UpdateException(StringLocalizer.Get("Upd_NoPackage"));
 
         try
         {
             using var archive = ZipFile.OpenRead(zipPath);
             var entries = archive.Entries;
-            if (entries.Count == 0) throw new UpdateException("更新包是空的。");
+            if (entries.Count == 0) throw new UpdateException(StringLocalizer.Get("Upd_EmptyPackage"));
 
             // 发布包形如 ForzaGallerySync-<版本>-win-x64/forza-gallery-sync.exe
             var exe = entries.FirstOrDefault(e =>
@@ -521,7 +521,7 @@ public static class UpdateService
 
             if (exe is null)
             {
-                throw new UpdateException("更新包里找不到 forza-gallery-sync.exe，可能下载到了错误的文件。");
+                throw new UpdateException(StringLocalizer.Get("Upd_NoExeInPackage"));
             }
 
             var slash = exe.FullName.LastIndexOf('/');

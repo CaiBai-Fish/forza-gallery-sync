@@ -616,4 +616,97 @@ You can download and run the installer from the releases page.</value>
   <data name="GalleryPage_TooltipToggleInfo.ToolTipService.ToolTip" xml:space="preserve">
     <value>Show / hide photo details</value>
   </data>
+  <data name="Upd_NoVersion.Text" xml:space="preserve">
+    <value>Missing target version; cannot build the download URL.</value>
+  </data>
+  <data name="Upd_NoManifestZip.Text" xml:space="preserve">
+    <value>Cannot obtain the hash manifest for v{0} (neither the hashes branch nor the Release API is reachable); refusing to install automatically for safety. Download manually from the releases page, or retry later.</value>
+  </data>
+  <data name="Upd_HashMismatch.Text" xml:space="preserve">
+    <value>Hash verification of the update package failed; the file may be incomplete or tampered with, and has been deleted. Retry, or download manually from the releases page.</value>
+  </data>
+  <data name="Upd_NoManifestInstaller.Text" xml:space="preserve">
+    <value>Cannot obtain the hash manifest for {0} (neither the hashes branch nor the Release API is reachable); refusing to install automatically for safety. Download manually from the releases page, or retry later.</value>
+  </data>
+  <data name="Upd_InstallerHashMismatch.Text" xml:space="preserve">
+    <value>Hash verification of the installer failed; the file may be incomplete or tampered with, and has been deleted. Retry, or download manually from the releases page.</value>
+  </data>
+  <data name="Upd_DownloadFailed.Text" xml:space="preserve">
+    <value>Download failed: HTTP {0}. URL: {1}</value>
+  </data>
+  <data name="Upd_EmptyDownload.Text" xml:space="preserve">
+    <value>The downloaded file is empty.</value>
+  </data>
+  <data name="Upd_NoPackage.Text" xml:space="preserve">
+    <value>The update package does not exist.</value>
+  </data>
+  <data name="Upd_EmptyPackage.Text" xml:space="preserve">
+    <value>The update package is empty.</value>
+  </data>
+  <data name="Upd_NoExeInPackage.Text" xml:space="preserve">
+    <value>forza-gallery-sync.exe was not found in the update package; the wrong file may have been downloaded.</value>
+  </data>
+  <data name="Upd_CorruptPackage.Text" xml:space="preserve">
+    <value>The update package is corrupt or incomplete: {0}</value>
+  </data>
+  <data name="Upd_DownloadPackageFailed.Text" xml:space="preserve">
+    <value>Failed to download the update package: {0}</value>
+  </data>
+  <data name="Upd_StartScriptFailed.Text" xml:space="preserve">
+    <value>Failed to start the update script: {0}</value>
+  </data>
+  <data name="Upd_StartInstallScriptFailed.Text" xml:space="preserve">
+    <value>Failed to start the install script: {0}</value>
+  </data>
+  <data name="Upd_BuildInstallScriptFailed.Text" xml:space="preserve">
+    <value>Failed to generate the install script: {0}</value>
+  </data>
+  <data name="Upd_BuildUpdateScriptFailed.Text" xml:space="preserve">
+    <value>Failed to generate the update script: {0}</value>
+  </data>
+  <data name="Upd_ScriptResourceMissing.Text" xml:space="preserve">
+    <value>Embedded script resource {0} was not found.</value>
+  </data>
+  <data name="Upd_ScriptResourceOpenFailed.Text" xml:space="preserve">
+    <value>Cannot open embedded script resource {0}.</value>
+  </data>
+  <data name="Upd_DirNotWritable.Text" xml:space="preserve">
+    <value>The program folder is not writable ({0}): {1}. Please download the update manually.</value>
+  </data>
+  <data name="Inc_CompareLocal.Text" xml:space="preserve">
+    <value>Comparing local files…</value>
+  </data>
+  <data name="Inc_CompareLocalProgress.Text" xml:space="preserve">
+    <value>Comparing local files… {0}/{1}</value>
+  </data>
+  <data name="Inc_DownloadFile.Text" xml:space="preserve">
+    <value>Downloading incremental file {0}/{1}… {2}/{3} MB</value>
+  </data>
+  <data name="Inc_DownloadSmall.Text" xml:space="preserve">
+    <value>Downloading the small-files bundle ({0} files, {1} MB)…</value>
+  </data>
+  <data name="Inc_Packing.Text" xml:space="preserve">
+    <value>Packing the incremental update…</value>
+  </data>
+  <data name="Inc_NoLocalDir.Text" xml:space="preserve">
+    <value>The program folder does not exist: {0}</value>
+  </data>
+  <data name="Inc_MissingSmallFile.Text" xml:space="preserve">
+    <value>A missing local file is not covered by any bundle: {0}</value>
+  </data>
+  <data name="Inc_EmptyAsset.Text" xml:space="preserve">
+    <value>Incremental asset {0} is an empty archive</value>
+  </data>
+  <data name="Inc_AssetDownloadFailed.Text" xml:space="preserve">
+    <value>Failed to download {0}: HTTP {1} ({2})</value>
+  </data>
+  <data name="Format_Dimension.Text" xml:space="preserve">
+    <value>{0} × {1}</value>
+  </data>
+  <data name="Format_TodayTime.Text" xml:space="preserve">
+    <value>Today {0}</value>
+  </data>
+  <data name="Format_PhotoCount.Text" xml:space="preserve">
+    <value>{0}</value>
+  </data>
 </root>
