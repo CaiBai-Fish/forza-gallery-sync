@@ -111,6 +111,15 @@ if (Test-Path $exePath) {
     }
 }
 
+# ---- 2b. verify the release folder ----
+# Language trimming already happened at compile time (see the ExcludeUnusedWinUILanguages
+# target in ForzaGallerySync.csproj), so this only asserts the result: no leftover
+# language dirs, required ones present, app files in the root. It never moves anything -
+# the flat layout is a platform requirement (organize-release.ps1 documents the crashes).
+Write-Host "==> [2b/4] Verifying release folder ..."
+& (Join-Path $root "organize-release.ps1") -TargetDir $outDir
+if ($LASTEXITCODE -ne 0) { throw "release folder verification failed (exit $LASTEXITCODE)" }
+
 # ---- 3. release manifest (used by the app for clean-directory detection) ----
 Write-Host "==> [3/4] Writing release manifest $manifestName ..."
 $files = Get-ChildItem $outDir -Recurse -File |

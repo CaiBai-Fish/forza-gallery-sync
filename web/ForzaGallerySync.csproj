@@ -20,6 +20,8 @@
     <!-- 独立 exe 模式：不打包 MSIX，也不需要系统预装 Windows App Runtime -->
     <WindowsPackageType>None</WindowsPackageType>
     <WindowsAppSDKSelfContained>true</WindowsAppSDKSelfContained>
+    <!-- 需要保留的 WinUI/Windows App SDK 附属资源语言（见文件末尾的裁剪逻辑） -->
+    <WinUILanguages>zh-CN;zh-TW;en-us</WinUILanguages>
   </PropertyGroup>
 
   <ItemGroup>
@@ -36,5 +38,64 @@
          独立成文件是为了避开 PowerShell 的 $ 与 C# 原始字符串插值语法的冲突。 -->
     <EmbeddedResource Include="Resources\apply-update.ps1" />
   </ItemGroup>
+
+  <!-- ============================================================
+        发布目录裁剪：去掉用不到的 WinUI 语言资源（编译期完成）
+        ============================================================
+        自包含发布时，Windows App SDK 的 Microsoft.WindowsAppSDK.SelfContained.targets
+        用通配符把所有附属资源都收进复制列表：
+
+            <MicrosoftWindowsAppSDKFiles Include="$(MicrosoftWindowsAppSDKMsixContent)\**\*.mui"/>
+            <MicrosoftWindowsAppSDKFiles Remove="@(MicrosoftWindowsAppSDKFilesExcluded)"/>
+
+        其中 `*.mui` 覆盖了 80+ 种语言，每个语言一个目录（实测 83 个目录 / 166 个文件
+        / 3.3 MB，每个只含 Microsoft.ui.xaml.dll.mui 之类），发布目录看起来极乱。
+
+        注意 <SatelliteResourceLanguages> 在这里**不起作用**：它管的是 .NET 附属程序集，
+        而这些 .mui 由上面那条通配符复制，不经过 .NET 的资源机制。
+
+        ★ 排除项必须在 Target 里录入，不能写成顶层 ItemGroup：`$(MicrosoftWindowsAppSDKMsixContent)`
+          在项目求值阶段还没有值，通配符会退化成 `\**\*.mui`（MSB5029，甚至可能枚举整个驱动器）。
+
+        ⚠️ 不要试图把语言目录或 .NET 程序集"移动"到 runtime/、resources/ 之类的子目录：
+          这些路径是平台硬编码的，实测会直接崩溃（换 SDK 版本后建议复测）：
+            - 语言目录挪到 resources\lang\ → WinUI: COMException「资源加载器缓存没有已加载的 MUI 项」
+            - 托管程序集挪到 runtime\      → .NET 主机在托管代码前退出（0x80008009 / 0xE0434352）
+          所以发布目录的扁平布局是平台约束，只能靠"减少文件"而非"重新分类"来改善。
+        -->
+  <Target Name="ExcludeUnusedWinUILanguages"
+          AfterTargets="ExtractMicrosoftWindowsAppSDKMsixFiles"
+          BeforeTargets="AddMicrosoftWindowsAppSDKPayloadFiles">
+    <ItemGroup>
+      <_WinUIMui Include="$(MicrosoftWindowsAppSDKMsixContent)\**\*.mui" />
+      <!-- 保留哪些语言：用「语言目录名 == 目标语言」直接比较 RecursiveDir。
+           MSBuild 的项匹配有两个坑，都实测踩过：
+             1) Condition 里写 `@(WinUIKeepLanguage)`（项列表）会被当成 `zh-CN;zh-TW;en-us`
+                这一整串，永远不会等于单个目录名，结果把要保留的也排掉了；
+             2) `Exclude="%(Identity)\**\*.mui"` 这类相对模式匹配不上绝对路径的候选集。
+           所以这里退回到最朴素的一对一比较，可读且行为确定。
+           语言清单与 $(WinUILanguages) 保持一致（改这里时记得同步那个属性与 README）。 -->
+      <_WinUIMuiKeep Include="@(_WinUIMui)"
+                     Condition="'%(RecursiveDir)' == 'zh-CN\' Or '%(RecursiveDir)' == 'zh-TW\' Or '%(RecursiveDir)' == 'en-us\'" />
+      <_WinUIMuiUnused Include="@(_WinUIMui)" Exclude="@(_WinUIMuiKeep)" />
+      <MicrosoftWindowsAppSDKFilesExcluded Include="@(_WinUIMuiUnused)" />
+    </ItemGroup>
+    <Message Importance="normal"
+             Text="WinUI 语言资源裁剪：候选 @(_WinUIMui->Count()) 个 .mui，保留 @(_WinUIMuiKeep->Count()) 个，排除 @(_WinUIMuiUnused->Count()) 个（$(WinUILanguages)）" />
+  </Target>
+
+  <!-- 兜底断言：裁剪依赖 Windows App SDK 的 MicrosoftWindowsAppSDKFilesExcluded 扩展点。
+       若某个 SDK 版本不再提供该扩展点，裁剪会静默失效、80+ 个语言目录重新回到发布目录，
+       所以这里检查**最终输出目录**（而不是 SDK 的解压缓存——那里永远是全部语言，
+       用它判断必然误报），让问题在构建时暴露，而不是等用户看到乱目录。 -->
+  <Target Name="VerifyWinUILanguageTrim" AfterTargets="CopyFilesToOutputDirectory">
+    <ItemGroup>
+      <_LeftoverMui
+        Include="$(OutDir)**\*.mui"
+        Exclude="$(OutDir)zh-CN\**\*.mui;$(OutDir)zh-TW\**\*.mui;$(OutDir)en-us\**\*.mui" />
+    </ItemGroup>
+    <Warning Condition="'@(_LeftoverMui)' != ''"
+             Text="语言资源裁剪未生效：$(OutDir) 下有 @(_LeftoverMui->Count()) 个多余的 .mui（依赖 MicrosoftWindowsAppSDKFilesExcluded，该 Windows App SDK 版本可能已改变实现）" />
+  </Target>
 
 </Project>

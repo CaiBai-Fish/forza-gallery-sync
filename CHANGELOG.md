@@ -37,6 +37,20 @@
   → 生成替换脚本整条链路跑完并断言，不覆盖任何正在使用的文件。
   配合 `FORZA_SYNC_INC_MANIFEST_FILE` / `FORZA_SYNC_INC_DOWNLOAD_BASE` 可指向本地服务，
   离线即可端到端验证（实测：本地下载 29.11 MB 增量包，完整包为 130 MB）。
+- `web/organize-release.ps1`：发布目录**校验**（裁剪是否生效、必需语言资源与程序文件是否在位）。
+
+### 改进
+- **发布目录在编译期完成裁剪**：WinUI 自带的多语言资源有 83 个目录（166 个文件 / 3.3 MB），
+  每个只含 `.mui`，之前的发布目录因此有 86 个目录、498 个文件。
+  现在在 `ForzaGallerySync.csproj` 里通过 Windows App SDK 的 `MicrosoftWindowsAppSDKFilesExcluded`
+  扩展点排除用不到的语言，`dotnet publish` 直接产出精简结构（保留 `zh-CN` / `zh-TW` / `en-us`），
+  不再依赖"打包后删文件"。注意 `<SatelliteResourceLanguages>` 对这类 `.mui` 无效——
+  它们由 Windows App SDK 的 targets 用通配符复制，不走 .NET 附属程序集机制。
+- 尝试过把托管程序集与语言资源目录"分类"到 `runtime\` / `resources\` 子目录，
+  **实测不可行**（.NET 主机在托管代码前退出 `0x80008009` / `0xE0434352`；
+  WinUI 抛 `COMException：资源加载器缓存没有已加载的 MUI 项`）。
+  自包含 WinUI 发布目录的扁平布局是平台约束，只能"减少文件"不能"重新分类"，
+  该结论已记录在 `AGENTS.md` 与 `web/organize-release.ps1` 顶部的注释里（换 SDK 版本后需复测）。
 
 ## [1.0.3] - 2026-09-15
 
