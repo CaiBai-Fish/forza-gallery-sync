@@ -234,10 +234,10 @@
                                       Visibility="{x:Bind VM.CheckingUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
 
-                    <!-- 增量更新：只下载真正变化的文件，失败自动回退完整包 -->
-                    <ToggleSwitch Header="优先增量更新"
+                    <!-- 增量更新只在"安装程序方式不可用"时作为回退，因此开关名改成回退策略 -->
+                    <ToggleSwitch Header="更新失败时回退增量更新"
                                   OnContent="只下载变化的文件"
-                                  OffContent="每次下载完整包"
+                                  OffContent="下载完整包"
                                   IsOn="{x:Bind VM.PreferIncremental, Mode=TwoWay}"
                                   Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
@@ -251,7 +251,7 @@
                                Foreground="{ThemeResource AppBrandBrush}"
                                Visibility="{x:Bind VM.HasUpdateActionMsg, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-                    <TextBlock Text="自动更新会先确认；增量模式只下载变化的文件并逐个校验 SHA256，不适用时自动回退完整包（完整包同样校验 SHA256）。校验通过才退出应用、覆盖程序文件并重启；哈希不匹配或拿不到官方清单时不会自动安装。"
+                    <TextBlock Text="点「下载并安装」会直接下载官方安装程序、校验 SHA256，然后退出本程序静默安装，装完自动启动新版本。免安装版装回当前目录保持免安装，安装版更新到原安装目录。安装程序不可用时自动回退到增量更新或完整包。"
                                Style="{StaticResource FootnoteTextStyle}"
                                Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 

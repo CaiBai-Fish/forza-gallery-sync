@@ -529,7 +529,21 @@ public sealed class SettingsViewModel : ObservableObject
 
         try
         {
-            // 1) 先试增量：拿清单 → 比对本地文件 → 只下变化的文件 → 逐个校验哈希。
+            // ---- 默认方式：下载官方安装程序并运行它 ----
+            //
+            // 为什么改成安装程序而不是"解压覆盖"：安装程序是官方发布产物，自带卸载入口与
+            // 注册表记录，装完的程序在"设置 → 应用"里能正常管理；覆盖式替换只在便携版
+            // 语义下成立。安装位置由 UpdateService.IsInstalled 决定：
+            //   - 免安装版（zip 解压运行）→ /DIR=<当前目录>，装回原处，升级后目录不变；
+            //   - 安装版 → 不带 /DIR，交给 Inno 用它记录的目录，避免出现两个安装位置。
+            if (PreferIncremental)
+            {
+                var installed = await TryInstallerUpdateAsync();
+                if (installed) return;
+                Logger.Info("安装程序方式不可用，回退到增量更新");
+            }
+
+            // 1) 再试增量：拿清单 → 比对本地文件 → 只下变化的文件 → 逐个校验哈希。
             //    任何一步不成立（无清单、版本不符、小文件有差异、下载失败）都返回 null，
             //    接下来原样走完整包那条路径——所以增量失败不会让用户无法更新。
             if (PreferIncremental)
@@ -616,6 +630,74 @@ public sealed class SettingsViewModel : ObservableObject
             _updateBusy = false;
             Downloading = false;
             OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
+    }
+
+    /// <summary>
+    /// 首选更新方式：下载官方安装程序 → 校验 SHA256 → 生成脚本，让它在应用退出后静默安装。
+    /// 返回 true 表示已接手（调用方应立即结束本次流程）；false 表示应回退到增量/完整包。
+    ///
+    /// 安装位置：免安装版带 <c>/DIR=&lt;当前目录&gt;</c> 装回原处；安装版交给 Inno 记录的目录。
+    /// </summary>
+    private async Task<bool> TryInstallerUpdateAsync()
+    {
+        try
+        {
+            var installedLocation = "";
+            var isInstalled = UpdateService.IsInstalled(out installedLocation);
+            var dirOverride = isInstalled ? null : UpdateService.AppDirectory;
+
+            Logger.Info(isInstalled
+                ? $"检测到安装版（注册表记录位置：{installedLocation}），安装程序将使用该目录"
+                : $"检测到免安装版，安装程序将装回当前目录：{dirOverride}");
+
+            UpdateActionMsg = $"正在下载安装程序 {LatestVersion}…";
+
+            var progress = new Progress<double>(p => Ui.Run(() =>
+            {
+                if (p >= 0)
+                {
+                    DownloadProgress = Math.Round(p * 100, 0);
+                    UpdateActionMsg = $"正在下载安装程序 {LatestVersion}… {DownloadProgress:F0}%";
+                }
+                else
+                {
+                    UpdateActionMsg = "正在下载安装程序…";
+                }
+            }));
+
+            var installer = await UpdateService.DownloadInstallerAsync(
+                LatestVersion, progress, _updateCts.Token);
+
+            // 模拟模式：只生成并自检脚本，不真的安装（不动程序文件）
+            if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
+            {
+                var script = UpdateService.WriteInstallerScript(installer, dirOverride);
+                var check = UpdateService.SelfCheckScript(script);
+                UpdateActionMsg = $"模拟模式（安装程序）：下载与哈希已校验；{check}";
+                Logger.Info($"模拟模式（安装程序）结果：installer={installer}, dir={dirOverride ?? "(默认)"}, {check}");
+                return true;
+            }
+
+            UpdateActionMsg = "安装程序已校验，即将退出并开始安装…";
+            Logger.Info($"准备运行安装程序：{installer}（目录覆盖：{dirOverride ?? "(Inno 默认)"}）");
+
+            UpdateService.LaunchInstaller(installer, dirOverride);
+
+            UpdateActionMsg = "应用即将退出并完成安装…";
+            UpdateRequested?.Invoke();
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            // 不在这里直接报错：让调用方回退到增量/完整包，用户仍有别的更新途径
+            Logger.Warn($"安装程序方式失败（将回退）：{ex.Message}");
+            UpdateActionMsg = "安装程序方式不可用，改用其他方式…";
+            return false;
         }
     }
 

@@ -27,9 +27,19 @@ public sealed class UpdateException : Exception
 /// </summary>
 public static class UpdateService
 {
+    /// <summary>
+    /// 下载基地址。默认指向官方 Release；可用环境变量 <c>FORZA_SYNC_UPDATE_BASE_URL</c>
+    /// 覆盖成任意 HTTP 根（如本地 <c>http://127.0.0.1:8733</c>），
+    /// 这样"下载 → 校验 → 生成安装脚本"整条链路可以在离线环境端到端验证，
+    /// 不必真的去 GitHub 拉 77 MB 的安装包，也不必等到有新版发布。
+    /// </summary>
+    private static string DownloadBase =>
+        Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_BASE_URL") is { Length: > 0 } custom
+            ? custom.TrimEnd('/')
+            : "https://github.com/CaiBai-Fish/forza-gallery-sync/releases/download";
+
     /// <summary>发布包下载地址（与 CHANGELOG / 仓库布局约定一致）。</summary>
-    private const string ReleaseZipUrlFormat =
-        "https://github.com/CaiBai-Fish/forza-gallery-sync/releases/download/v{0}/ForzaGallerySync-{0}-win-x64.zip";
+    private static string ReleaseZipUrlFormat => $"{DownloadBase}/v{{0}}/ForzaGallerySync-{{0}}-win-x64.zip";
 
     /// <summary>
     /// 产物哈希清单地址（独立 `hashes` 分支，见 build-release.yml）。
@@ -40,42 +50,63 @@ public static class UpdateService
     ///
     /// 两者都是 raw URL 静态文件，**不消耗 GitHub API 配额**，因此是日常路径。
     /// </summary>
-    private const string HashesBranchBase =
-        "https://raw.githubusercontent.com/CaiBai-Fish/forza-gallery-sync/hashes";
+    /// <summary>
+    /// 哈希清单基地址。默认是 <c>hashes</c> 分支的 raw URL；
+    /// 可用 <c>FORZA_SYNC_HASHES_BASE_URL</c> 覆盖（配合 <see cref="DownloadBase"/>
+    /// 就能在本地模拟一整个 Release，端到端验证更新链路）。
+    /// </summary>
+    private static string HashesBranchBase =>
+        Environment.GetEnvironmentVariable("FORZA_SYNC_HASHES_BASE_URL") is { Length: > 0 } custom
+            ? custom.TrimEnd('/')
+            : "https://raw.githubusercontent.com/CaiBai-Fish/forza-gallery-sync/hashes";
 
-    /// <summary>发布包名（构造下载地址与在哈希清单里查表都用它）。</summary>
-    private static string ArtifactName(string version) => $"ForzaGallerySync-{version}-win-x64.zip";
+    /// <summary>发布包名（免安装版完整包，增量更新不可用时的备选）。</summary>
+    private static string ZipArtifactName(string version) => $"ForzaGallerySync-{version}-win-x64.zip";
 
     /// <summary>
-    /// 取得更新包的期望 SHA256。三个来源，按"会不会被限流"排序：
+    /// 安装程序名。**更新默认走它**：下载 → 校验 SHA256 → 独立脚本静默安装 → 重启。
+    ///
+    /// 为什么优先安装程序而不是"解压覆盖"：安装程序是官方发布产物、自带卸载入口与
+    /// 注册表记录，装完的程序在"设置 → 应用"里能正常管理；而覆盖式替换只在
+    /// 便携版语义下成立，装到别处会出现"文件更新了但卸载记录还是旧的"。
+    /// </summary>
+    private static string SetupArtifactName(string version) => $"ForzaGallerySync-{version}-setup.exe";
+
+    /// <summary>安装程序下载地址。</summary>
+    private static string ReleaseSetupUrlFormat => $"{DownloadBase}/v{{0}}/ForzaGallerySync-{{0}}-setup.exe";
+
+    /// <summary>
+    /// 取得指定产物的期望 SHA256。三个来源，按"会不会被限流"排序：
     ///
     /// 1. **`hashes` 分支的 `<版本>.txt`**（优先）：规范清单，静态文件，不消耗 API 配额；
     /// 2. **`hashes` 分支的 `hashes.json`**（次选）：同样静态，JSON 解析；
     /// 3. **Releases API 的 `digest` 字段**（兜底）：平台计算、与上传字节绑定，同样权威，
     ///    但要走 API（匿名 60 次/小时），因此只在前两者不可用时使用。
     ///
-    /// 三个来源都拿不到时返回 null。**调用方不得据此放行安装**（见
-    /// <see cref="DownloadVerifiedAsync"/>）：拿不到清单就不自动安装，只留手动下载出口。
+    /// 三个来源都拿不到时返回 null。**调用方不得据此放行安装**：拿不到清单就不自动安装，
+    /// 只留手动下载出口。
     /// </summary>
-    public static async Task<string?> TryGetExpectedHashAsync(string version, CancellationToken token)
+    public static Task<string?> TryGetExpectedHashAsync(string version, CancellationToken token) =>
+        TryGetExpectedHashAsync(version, ZipArtifactName(version), token);
+
+    public static async Task<string?> TryGetExpectedHashAsync(string version, string artifact, CancellationToken token)
     {
-        var fromTxt = await TryGetHashFromManifestTextAsync(version, token);
+        var fromTxt = await TryGetHashFromManifestTextAsync(version, artifact, token);
         if (fromTxt is not null) return fromTxt;
 
-        var fromJson = await TryGetHashFromHashesJsonAsync(version, token);
+        var fromJson = await TryGetHashFromHashesJsonAsync(version, artifact, token);
         if (fromJson is not null) return fromJson;
 
-        Logger.Warn($"hashes 分支的两个清单都取不到 {ArtifactName(version)} 的哈希，回退 Release API digest");
-        return await TryGetHashFromApiAsync(version, token);
+        Logger.Warn($"hashes 分支的两个清单都取不到 {artifact} 的哈希，回退 Release API digest");
+        return await TryGetHashFromApiAsync(version, artifact, token);
     }
 
     /// <summary>
     /// 从 hashes 分支的 `<版本>.txt` 取哈希：每行 `<sha256>  <文件名>`（两个空格分隔）。
     /// 跳过空行与 `#` 注释行。
     /// </summary>
-    private static async Task<string?> TryGetHashFromManifestTextAsync(string version, CancellationToken token)
+    private static async Task<string?> TryGetHashFromManifestTextAsync(string version, string artifact, CancellationToken token)
     {
-        var artifact = ArtifactName(version);
         var url = $"{HashesBranchBase}/{version}.txt";
         try
         {
@@ -116,9 +147,8 @@ public static class UpdateService
     }
 
     /// <summary>从 Releases API 的 digest 字段取哈希。</summary>
-    private static async Task<string?> TryGetHashFromApiAsync(string version, CancellationToken token)
+    private static async Task<string?> TryGetHashFromApiAsync(string version, string artifact, CancellationToken token)
     {
-        var artifact = ArtifactName(version);
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
@@ -171,9 +201,8 @@ public static class UpdateService
     }
 
     /// <summary>从 hashes 分支的 hashes.json 取哈希（静态文件，不消耗 API 配额）。</summary>
-    private static async Task<string?> TryGetHashFromHashesJsonAsync(string version, CancellationToken token)
+    private static async Task<string?> TryGetHashFromHashesJsonAsync(string version, string artifact, CancellationToken token)
     {
-        var artifact = ArtifactName(version);
         try
         {
             using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
@@ -322,9 +351,82 @@ public static class UpdateService
     }
 
     /// <summary>
-    /// 下载指定版本的发布包。
+    /// 下载并校验**安装程序**，返回其路径。更新默认走这条路。
+    ///
+    /// 与 <see cref="DownloadVerifiedAsync"/>（完整包）的差别：安装程序不需要结构校验
+    /// （它就是单个 exe），但**同样必须过哈希**——拿不到清单就不放行。
     /// </summary>
-    /// <param name="progress">进度回调（0~1，未知长度时为 -1 表示只报告已下载量）。</param>
+    public static async Task<string> DownloadInstallerAsync(
+        string version, IProgress<double>? progress, CancellationToken token)
+    {
+        if (string.IsNullOrWhiteSpace(version))
+        {
+            throw new UpdateException("缺少目标版本号，无法构造下载地址。");
+        }
+
+        var artifact = SetupArtifactName(version);
+        var expected = await TryGetExpectedHashAsync(version, artifact, token);
+        var target = InstallerDownloadPath(version);
+
+        var path = await DownloadToFileAsync(
+            string.Format(ReleaseSetupUrlFormat, version), target, progress, token);
+
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            Logger.Error($"未能取得 {artifact} 的哈希清单，拒绝自动安装");
+            SafeDelete(path);
+            throw new UpdateException(
+                $"无法取得 {artifact} 的哈希清单（hashes 分支清单与 Release API 都不可用），"
+                + "为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。");
+        }
+
+        if (!VerifyHash(path, expected))
+        {
+            SafeDelete(path);
+            throw new UpdateException(
+                "安装程序哈希校验失败，文件可能下载不完整或已被篡改，已删除。请重试；"
+                + "若反复失败请到 Releases 页手动下载。");
+        }
+
+        Logger.Info($"安装程序已下载并校验：{path}");
+        return path;
+    }
+
+    /// <summary>安装程序下载到系统临时目录（避免污染程序目录）。</summary>
+    public static string InstallerDownloadPath(string version) =>
+        Path.Combine(Path.GetTempPath(), $"ForzaGallerySync-{version}-setup.exe");
+
+    /// <summary>
+    /// 判断当前是不是"安装版"（有卸载注册表项）。
+    ///
+    /// 用途：升级时决定安装位置 —— 安装版让 Inno 用它记录的目录；免安装版
+    /// （zip 直接解压）则用 <c>/DIR=</c> 指定到它当前所在目录，保持原样。
+    /// 判据用注册表而不是"目录里有没有 unins000.exe"：后者在便携目录被解压过
+    /// 安装包的情况下会误判。
+    /// </summary>
+    public static bool IsInstalled(out string installedLocation)
+    {
+        installedLocation = "";
+        const string appId = "{8F3A9C41-2B7E-4D5A-9C1F-6E0B7A4D3C52}_is1";
+        try
+        {
+            using var key = Microsoft.Win32.Registry.CurrentUser.OpenSubKey(
+                $@"Software\Microsoft\Windows\CurrentVersion\Uninstall\{appId}");
+            if (key is null) return false;
+
+            installedLocation = key.GetValue("InstallLocation") as string ?? "";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"读取卸载注册表项失败（按免安装版处理）：{ex.Message}");
+            return false;
+        }
+    }
+
+    /// <summary>
+    /// 下载指定版本的免安装完整包（增量与安装程序都不可用时的最后备选）。
+    /// </summary>
     public static async Task<string> DownloadAsync(string version, IProgress<double>? progress, CancellationToken token)
     {
         if (string.IsNullOrWhiteSpace(version))
@@ -334,7 +436,17 @@ public static class UpdateService
 
         var url = string.Format(ReleaseZipUrlFormat, version);
         var target = DownloadPath(version);
+        return await DownloadToFileAsync(url, target, progress, token);
+    }
 
+    /// <summary>
+    /// 把 URL 下到指定路径（带进度上报与失败清理）。
+    /// 完整包与安装程序共用这一段，避免两处各写一遍下载循环。
+    /// </summary>
+    /// <param name="progress">进度回调（0~1，未知长度时为 -1 表示只报告已下载量）。</param>
+    private static async Task<string> DownloadToFileAsync(
+        string url, string target, IProgress<double>? progress, CancellationToken token)
+    {
         try
         {
             Directory.CreateDirectory(Path.GetDirectoryName(target)!);
@@ -523,6 +635,77 @@ public static class UpdateService
     }
 
     /// <summary>
+    /// 展开"运行安装程序"的脚本并启动它，随后调用方应立即退出应用。
+    ///
+    /// 脚本流程：等应用退出 → 静默运行安装程序 → 成功则启动新版本、失败则启动原版本。
+    /// 安装位置由 <paramref name="installDirOverride"/> 决定：
+    /// - 有值（免安装版）：<c>/DIR=&lt;应用当前目录&gt;</c>，装回原处，升级后仍在同一目录；
+    /// - 空（安装版）：不带 <c>/DIR</c>，交给 Inno 用它记录的安装目录。
+    /// </summary>
+    public static void LaunchInstaller(string installerPath, string? installDirOverride)
+    {
+        var script = WriteInstallerScript(installerPath, installDirOverride);
+
+        // 模拟模式：只生成脚本，不真的安装（用于在不动程序文件的前提下验证脚本）
+        if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
+        {
+            Logger.Info($"模拟模式：安装脚本未执行。{SelfCheckScript(script)}");
+            return;
+        }
+
+        try
+        {
+            // UseShellExecute=false 直接起 powershell：脚本与当前进程无父子依赖，可独立存活
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "powershell.exe",
+                Arguments = $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File \"{script}\"",
+                UseShellExecute = false,
+                CreateNoWindow = true,
+            });
+
+            Logger.Info("安装脚本已启动，应用即将退出以便安装程序替换文件");
+        }
+        catch (Exception ex)
+        {
+            throw new UpdateException($"启动安装脚本失败：{ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
+    /// 只生成"运行安装程序"的脚本、不启动它，返回脚本路径。
+    /// 与 <see cref="WriteScriptOnly"/> 同理由：支持模拟模式验证脚本正确性。
+    /// </summary>
+    public static string WriteInstallerScript(string installerPath, string? installDirOverride)
+    {
+        var script = Path.Combine(Path.GetTempPath(), $"ForzaGallerySync-install-{Environment.ProcessId}.ps1");
+        var log = Path.Combine(Path.GetTempPath(), "ForzaGallerySync-update.log");
+
+        var mode = string.IsNullOrWhiteSpace(installDirOverride) ? "installed" : "portable";
+
+        try
+        {
+            var content = LoadScriptTemplate("run-installer.ps1")
+                .Replace("{{INSTALLER}}", EscapeForSingleQuotedPs(installerPath))
+                .Replace("{{LOG}}", EscapeForSingleQuotedPs(log))
+                .Replace("{{MODE}}", mode)
+                .Replace("{{DIR}}", EscapeForSingleQuotedPs(installDirOverride ?? ""))
+                .Replace("{{APP}}", EscapeForSingleQuotedPs(AppDirectory))
+                .Replace("{{PID}}", Environment.ProcessId.ToString());
+
+            // UTF-8 带 BOM：脚本由 powershell.exe（Windows PowerShell 5.1）执行，
+            // 无 BOM 时它会按系统 ANSI 代码页解码，脚本里的中文会乱码并破坏引号配对。
+            File.WriteAllText(script, content, new System.Text.UTF8Encoding(encoderShouldEmitUTF8Identifier: true));
+            Logger.Info($"安装脚本已写入: {script}（模式 {mode}，日志 {log}）");
+            return script;
+        }
+        catch (Exception ex)
+        {
+            throw new UpdateException($"生成安装脚本失败：{ex.Message}", ex);
+        }
+    }
+
+    /// <summary>
     /// 只展开替换脚本、不启动它，返回脚本路径。
     ///
     /// 独立出来是为了支持模拟模式（<c>FORZA_SYNC_UPDATE_SIMULATE=1</c>）：
@@ -574,20 +757,20 @@ public static class UpdateService
     private static string EscapeForSingleQuotedPs(string value) =>
         (value ?? "").Replace("'", "''");
 
-    /// <summary>读取内嵌的替换脚本模板。</summary>
-    private static string LoadScriptTemplate()
+    /// <summary>读取内嵌的脚本模板（默认是覆盖式替换脚本）。</summary>
+    private static string LoadScriptTemplate(string resourceFileName = "apply-update.ps1")
     {
         var assembly = Assembly.GetExecutingAssembly();
         var name = assembly.GetManifestResourceNames()
-            .FirstOrDefault(n => n.EndsWith("apply-update.ps1", StringComparison.OrdinalIgnoreCase));
+            .FirstOrDefault(n => n.EndsWith(resourceFileName, StringComparison.OrdinalIgnoreCase));
 
         if (name is null)
         {
-            throw new UpdateException("找不到内嵌的更新脚本资源 apply-update.ps1。");
+            throw new UpdateException($"找不到内嵌的脚本资源 {resourceFileName}。");
         }
 
         using var stream = assembly.GetManifestResourceStream(name)
-            ?? throw new UpdateException("无法打开内嵌的更新脚本资源。");
+            ?? throw new UpdateException($"无法打开内嵌的脚本资源 {resourceFileName}。");
         using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
         return reader.ReadToEnd();
     }

@@ -37,6 +37,8 @@
     <!-- 自动更新的替换脚本：以资源内嵌，运行时展开到临时目录再启动。
          独立成文件是为了避开 PowerShell 的 $ 与 C# 原始字符串插值语法的冲突。 -->
     <EmbeddedResource Include="Resources\apply-update.ps1" />
+    <!-- 更新时运行安装程序的脚本（免安装版/安装版两种安装位置处理）。 -->
+    <EmbeddedResource Include="Resources\run-installer.ps1" />
   </ItemGroup>
 
   <!-- ============================================================
@@ -107,16 +109,25 @@
 
   <!-- 兜底断言：裁剪依赖 Windows App SDK 的 MicrosoftWindowsAppSDKFilesExcluded 扩展点。
        若某个 SDK 版本不再提供该扩展点，裁剪会静默失效、80+ 个语言目录重新回到发布目录，
-       所以这里检查**最终输出目录**（而不是 SDK 的解压缓存——那里永远是全部语言，
-       用它判断必然误报），让问题在构建时暴露，而不是等用户看到乱目录。 -->
+       所以这里检查**最终输出目录**（而不是 SDK 的解压缓存——那里永远是全部语言，用它判断
+       必然误报），让问题在构建时暴露，而不是等用户看到乱目录。
+
+       ★ 判定方式要"取出多余语言目录"，不要用 Exclude 里的相对通配模式：
+         `Exclude="$(OutDir)zh-CN\**\*.mui"` 这种写法在 $(OutDir) 带正斜杠/尾部斜杠时匹配不上，
+         结果把**要保留的** .mui 也算成多余、每次都误报（实测踩过）。
+         另外 Windows App SDK 会为每种语言建一个空目录，所以必须按"目录里有 .mui"来判断；
+         而 $(OutDir) 下面还有 RID 子目录（bin\<cfg>\<tfm>\win-x64\zh-CN\），
+         所以匹配时要同时认这两种层级，否则又变成误报。 -->
   <Target Name="VerifyWinUILanguageTrim" AfterTargets="CopyFilesToOutputDirectory">
     <ItemGroup>
-      <_LeftoverMui
-        Include="$(OutDir)**\*.mui"
-        Exclude="$(OutDir)zh-CN\**\*.mui;$(OutDir)zh-TW\**\*.mui;$(OutDir)en-us\**\*.mui" />
+      <_OutMui Include="$(OutDir)**\*.mui" />
+      <_OutMuiKeep Include="@(_OutMui)"
+                   Condition="'%(RecursiveDir)' == 'zh-CN\' Or '%(RecursiveDir)' == 'zh-TW\' Or '%(RecursiveDir)' == 'en-us\'
+                              Or '%(RecursiveDir)' == 'win-x64\zh-CN\' Or '%(RecursiveDir)' == 'win-x64\zh-TW\' Or '%(RecursiveDir)' == 'win-x64\en-us\'" />
+      <_OutMuiExtra Include="@(_OutMui)" Exclude="@(_OutMuiKeep)" />
     </ItemGroup>
-    <Warning Condition="'@(_LeftoverMui)' != ''"
-             Text="语言资源裁剪未生效：$(OutDir) 下有 @(_LeftoverMui->Count()) 个多余的 .mui（依赖 MicrosoftWindowsAppSDKFilesExcluded，该 Windows App SDK 版本可能已改变实现）" />
+    <Warning Condition="'@(_OutMuiExtra)' != ''"
+             Text="语言资源裁剪未生效：$(OutDir) 下有 @(_OutMuiExtra->Count()) 个多余的 .mui（例如 %(_OutMuiExtra.RecursiveDir)）；依赖 MicrosoftWindowsAppSDKFilesExcluded，该 Windows App SDK 版本可能已改变实现" />
   </Target>
 
 </Project>
