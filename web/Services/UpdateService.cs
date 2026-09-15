@@ -447,13 +447,13 @@ public static class UpdateService
         try
         {
             var content = LoadScriptTemplate()
-                .Replace("{{APP}}", AppDirectory)
-                .Replace("{{ZIP}}", zipPath)
-                .Replace("{{PREFIX}}", stripPrefix)
-                .Replace("{{STAGE}}", stage)
-                .Replace("{{LOG}}", log)
+                .Replace("{{APP}}", EscapeForSingleQuotedPs(AppDirectory))
+                .Replace("{{ZIP}}", EscapeForSingleQuotedPs(zipPath))
+                .Replace("{{PREFIX}}", EscapeForSingleQuotedPs(stripPrefix))
+                .Replace("{{STAGE}}", EscapeForSingleQuotedPs(stage))
+                .Replace("{{LOG}}", EscapeForSingleQuotedPs(log))
                 .Replace("{{PID}}", Environment.ProcessId.ToString())
-                .Replace("{{IDENTITY}}", identity);
+                .Replace("{{IDENTITY}}", EscapeForSingleQuotedPs(identity));
 
             // 必须写成 UTF-8 **带 BOM**：脚本由 powershell.exe（Windows PowerShell 5.1）
             // 执行，无 BOM 时它会按系统 ANSI 代码页解码，文件里的中文会变成乱码，
@@ -467,6 +467,13 @@ public static class UpdateService
             throw new UpdateException($"生成更新脚本失败：{ex.Message}", ex);
         }
     }
+
+    /// <summary>
+    /// 转义成可安全嵌入 PowerShell 单引号字符串的形式。
+    /// 路径里可能出现单引号（用户名、目录名），不转义会把脚本的字符串截断、破坏语法。
+    /// </summary>
+    private static string EscapeForSingleQuotedPs(string value) =>
+        (value ?? "").Replace("'", "''");
 
     /// <summary>读取内嵌的替换脚本模板。</summary>
     private static string LoadScriptTemplate()
