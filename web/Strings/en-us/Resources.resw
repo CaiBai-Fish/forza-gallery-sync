@@ -592,4 +592,28 @@ You can download and run the installer from the releases page.</value>
   <data name="Common_Cancel.Text" xml:space="preserve">
     <value>Cancel</value>
   </data>
+  <data name="DashboardPage_TooltipReload.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Reload statistics</value>
+  </data>
+  <data name="DashboardPage_TooltipClosePreview.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Close preview</value>
+  </data>
+  <data name="GalleryPage_TooltipBack.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Back to library</value>
+  </data>
+  <data name="GalleryPage_TooltipRefresh.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="GalleryPage_TooltipOpenFolder.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Open the download folder in File Explorer</value>
+  </data>
+  <data name="GalleryPage_TooltipPrevPage.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Previous page</value>
+  </data>
+  <data name="GalleryPage_TooltipNextPage.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Next page</value>
+  </data>
+  <data name="GalleryPage_TooltipToggleInfo.ToolTipService.ToolTip" xml:space="preserve">
+    <value>Show / hide photo details</value>
+  </data>
 </root>

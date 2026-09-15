@@ -9,9 +9,9 @@
         <!-- ================= 工具栏 ================= -->
         <Grid Grid.Row="0" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8">
             <!-- 详情模式下出现的返回按钮 -->
-            <Button x:Name="BackBtn" Visibility="Collapsed"
+            <Button x:Uid="GalleryPage_TooltipBack" x:Name="BackBtn" Visibility="Collapsed"
                     Style="{StaticResource ToolbarButtonStyle}"
-                    ToolTipService.ToolTip="返回照片库"
+                    
                     Click="OnDetailClose">
                 <FontIcon Glyph="&#xE72B;" FontSize="14" />
             </Button>
@@ -34,13 +34,13 @@
                 <ComboBox x:Uid="GalleryPage_PlaceholderText_02" x:Name="MonthCombo" MinWidth="150"
                           ItemsSource="{x:Bind VM.Months, Mode=OneWay}"
                           SelectionChanged="OnMonthChanged" />
-                <Button Style="{StaticResource ToolbarButtonStyle}"
-                        ToolTipService.ToolTip="刷新" Click="OnRefresh">
+                <Button x:Uid="GalleryPage_TooltipRefresh" Style="{StaticResource ToolbarButtonStyle}"
+                         Click="OnRefresh">
                     <FontIcon Glyph="&#xE72C;" FontSize="14" />
                 </Button>
-                <Button Style="{StaticResource ToolbarButtonStyle}"
+                <Button x:Uid="GalleryPage_TooltipOpenFolder" Style="{StaticResource ToolbarButtonStyle}"
                         IsEnabled="{x:Bind VM.HasDownloadDir, Mode=OneWay}"
-                        ToolTipService.ToolTip="在资源管理器中打开下载目录"
+                        
                         Click="OnOpenDownloadDir">
                     <FontIcon Glyph="&#xE8B7;" FontSize="14" />
                 </Button>
@@ -130,9 +130,9 @@
 
         <!-- ================= 分页 ================= -->
         <StackPanel x:Name="Pager" Grid.Row="2" Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center">
-            <Button Style="{StaticResource PagerButtonStyle}"
+            <Button x:Uid="GalleryPage_TooltipPrevPage" Style="{StaticResource PagerButtonStyle}"
                     IsEnabled="{x:Bind VM.HasPrev, Mode=OneWay}"
-                    ToolTipService.ToolTip="上一页" Click="OnPrevPage">
+                     Click="OnPrevPage">
                 <FontIcon Glyph="&#xE76B;" FontSize="12" />
             </Button>
 
@@ -153,9 +153,9 @@
                 </ItemsControl.ItemTemplate>
             </ItemsControl>
 
-            <Button Style="{StaticResource PagerButtonStyle}"
+            <Button x:Uid="GalleryPage_TooltipNextPage" Style="{StaticResource PagerButtonStyle}"
                     IsEnabled="{x:Bind VM.HasNext, Mode=OneWay}"
-                    ToolTipService.ToolTip="下一页" Click="OnNextPage">
+                     Click="OnNextPage">
                 <FontIcon Glyph="&#xE76C;" FontSize="12" />
             </Button>
         </StackPanel>
@@ -196,11 +196,11 @@
                 </Image>
 
                 <!-- 信息栏展开 / 收起（贴图片右缘，常驻可见） -->
-                <Button x:Name="ToggleSidebarBtn"
+                <Button x:Uid="GalleryPage_TooltipToggleInfo" x:Name="ToggleSidebarBtn"
                         HorizontalAlignment="Right" VerticalAlignment="Center"
                         Width="32" Height="56" Margin="0,0,10,0" Padding="0"
                         Click="OnToggleSidebar"
-                        ToolTipService.ToolTip="显示 / 收起照片信息">
+                        >
                     <FontIcon x:Name="ToggleSidebarIcon" Glyph="&#xE76C;" FontSize="12" />
                 </Button>
             </Grid>

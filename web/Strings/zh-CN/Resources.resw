@@ -592,4 +592,28 @@
   <data name="Common_Cancel.Text" xml:space="preserve">
     <value>取消</value>
   </data>
+  <data name="DashboardPage_TooltipReload.ToolTipService.ToolTip" xml:space="preserve">
+    <value>重新加载统计</value>
+  </data>
+  <data name="DashboardPage_TooltipClosePreview.ToolTipService.ToolTip" xml:space="preserve">
+    <value>关闭预览</value>
+  </data>
+  <data name="GalleryPage_TooltipBack.ToolTipService.ToolTip" xml:space="preserve">
+    <value>返回照片库</value>
+  </data>
+  <data name="GalleryPage_TooltipRefresh.ToolTipService.ToolTip" xml:space="preserve">
+    <value>刷新</value>
+  </data>
+  <data name="GalleryPage_TooltipOpenFolder.ToolTipService.ToolTip" xml:space="preserve">
+    <value>在资源管理器中打开下载目录</value>
+  </data>
+  <data name="GalleryPage_TooltipPrevPage.ToolTipService.ToolTip" xml:space="preserve">
+    <value>上一页</value>
+  </data>
+  <data name="GalleryPage_TooltipNextPage.ToolTipService.ToolTip" xml:space="preserve">
+    <value>下一页</value>
+  </data>
+  <data name="GalleryPage_TooltipToggleInfo.ToolTipService.ToolTip" xml:space="preserve">
+    <value>显示 / 收起照片信息</value>
+  </data>
 </root>

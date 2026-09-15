@@ -193,5 +193,13 @@
  "Settings_ManualUpdate_Title": "需要手动更新",
  "Settings_ManualUpdate_Body": "无法自动更新：{0}\n\n可以在打开的下载页手动下载安装包并运行。",
  "Settings_ManualUpdate_Open": "打开发布页",
- "Common_Cancel": "取消"
+ "Common_Cancel": "取消",
+ "DashboardPage_TooltipReload.ToolTipService": "重新加载统计",
+ "DashboardPage_TooltipClosePreview.ToolTipService": "关闭预览",
+ "GalleryPage_TooltipBack.ToolTipService": "返回照片库",
+ "GalleryPage_TooltipRefresh.ToolTipService": "刷新",
+ "GalleryPage_TooltipOpenFolder.ToolTipService": "在资源管理器中打开下载目录",
+ "GalleryPage_TooltipPrevPage.ToolTipService": "上一页",
+ "GalleryPage_TooltipNextPage.ToolTipService": "下一页",
+ "GalleryPage_TooltipToggleInfo.ToolTipService": "显示 / 收起照片信息"
 }

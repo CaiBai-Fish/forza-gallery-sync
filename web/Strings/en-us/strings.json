@@ -193,5 +193,13 @@
  "Settings_ManualUpdate_Title": "Manual update required",
  "Settings_ManualUpdate_Body": "Cannot update automatically: {0}\n\nYou can download and run the installer from the releases page.",
  "Settings_ManualUpdate_Open": "Open releases page",
- "Common_Cancel": "Cancel"
+ "Common_Cancel": "Cancel",
+ "DashboardPage_TooltipReload.ToolTipService": "Reload statistics",
+ "DashboardPage_TooltipClosePreview.ToolTipService": "Close preview",
+ "GalleryPage_TooltipBack.ToolTipService": "Back to library",
+ "GalleryPage_TooltipRefresh.ToolTipService": "Refresh",
+ "GalleryPage_TooltipOpenFolder.ToolTipService": "Open the download folder in File Explorer",
+ "GalleryPage_TooltipPrevPage.ToolTipService": "Previous page",
+ "GalleryPage_TooltipNextPage.ToolTipService": "Next page",
+ "GalleryPage_TooltipToggleInfo.ToolTipService": "Show / hide photo details"
 }

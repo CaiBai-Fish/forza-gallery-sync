@@ -283,7 +283,10 @@ def main() -> int:
             uid_attr = None
             for am in attrs:
                 name, value = am.group(1), am.group(2)
-                if name == "ToolTipService.ToolTip" or "x:Bind" in value:
+                # ToolTipService.ToolTip 是附加属性，x:Uid 也支持它——资源名写成
+                # "<键>.ToolTipService.ToolTip" 即可（WinUI 的约定）。
+                # 早期版本把它一律丢给 C#，导致 8 处提示文案漏译，故改为同样注入。
+                if "x:Bind" in value:
                     kept_in_csharp.append((name, value))
                     continue
                 if uid_attr is None and value in wanted:
