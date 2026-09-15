@@ -9,6 +9,8 @@
 
 ## [未发布]
 
+## [1.0.6] - 2026-09-15
+
 ### 修复
 - **部分错误提示没有接入多语言，英文界面会显示中文**：`UpdateService` 与
   `IncrementalUpdateService` 里 12 处异常消息是硬编码中文，而这些消息会直接显示给
@@ -18,6 +20,12 @@
   排查手段固化成了 `tools/check_i18n_keys.py`：扫描 C# 里所有
   `StringLocalizer.Get/Format` 调用并核对键是否存在于两种语言的字典里
   （`StringLocalizer` 取不到键时会原样返回键名，界面会直接显示键名）。
+
+### 新增（工具）
+- `tools/check_release_notes.py`：走 REST API 读取 Release 说明并断言格式与资产齐全。
+  起因是本项目用 PowerShell 变量捕获 `gh release view` 的输出会**丢掉换行**
+  （由此把 v1.0.4 的说明写成了一整行），改用 API + 解析后才有可靠的断言。
+- `tools/diag_release_body.py`：定位正文里的字面 `\n` 等转义问题。
 
 ## [1.0.5] - 2026-09-15
 

@@ -92,8 +92,10 @@ def main() -> int:
         problems.append(f"换行丢失（{len(body)} 字符只有 {len(lines)} 行）")
     if "### " not in body:
         problems.append("没有包含 CHANGELOG 章节")
-    if "\\n" in body:
-        problems.append("出现字面 \\n 转义")
+    # 正文里出现字面 \n 本身不算错（CHANGELOG 可能就是在描述这个问题），
+    # 真正的故障是"换行整体丢失、正文挤成少数几行"——那已由上面的行数断言覆盖。
+    if body.count("\\n") > 20:
+        problems.append(f"字面 \\n 过多（{body.count(chr(92) + 'n')} 处），疑似换行被转义")
 
     out.unlink(missing_ok=True)
 

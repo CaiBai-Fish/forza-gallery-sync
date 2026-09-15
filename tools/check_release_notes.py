@@ -46,8 +46,10 @@ def main() -> int:
             problems.append(f"缺少{label}（{marker!r}）")
     if len(body) > 300 and len(lines) < 12:
         problems.append(f"换行丢失：{len(body)} 字符只有 {len(lines)} 行")
-    if "\\n" in body:
-        problems.append("正文里出现字面 \\n（换行被转义成了两个字符）")
+    # 字面 \n 本身不算错（CHANGELOG 可能正是在描述这个问题）；真正的故障是换行整体丢失，
+    # 已由上面的行数断言覆盖。
+    if body.count("\\n") > 20:
+        problems.append(f"字面反斜杠 n 过多（{body.count(chr(92) + 'n')} 处），疑似换行被转义")
 
     assets = payload.get("assets", [])
     names = [asset["name"] for asset in assets]
