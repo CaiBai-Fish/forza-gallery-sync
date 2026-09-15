@@ -1,0 +1,3 @@
+17062f8c95b19ab6e30bab639e5cd4671928688dcc7ffac22019f6e7bda7c981  ForzaGallerySync-1.0.5-win-x64.zip
+f6e8f8492f5f342187b6ff2451082b3fd03d79e485e45ffed93adb465d42bbde  ForzaGallerySync-1.0.5-setup.exe
+21c0e6a19c4ee83d0dc118dab512b549441fca061dbf5f9e159241bfa2363179  forza-sync.exe
