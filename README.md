@@ -170,6 +170,15 @@ dotnet run -p:Platform=x64            # 运行桌面窗口
 
   设置页会把该版本的更新说明一并展示。发布新版本时记得在 CHANGELOG 里补上 `## [x.y.z]` 章节，
   否则检查更新读不到。（`CHANGELOG.md` **不随程序打包**，打包版依赖远程下载。）
+- **自动更新的替换脚本有两个易踩的坑**（见 `web/Resources/apply-update.ps1`）：
+  1. 脚本必须以 **UTF-8 带 BOM** 写盘。它由 `powershell.exe`（Windows PowerShell 5.1）执行，
+     无 BOM 时 5.1 按系统 ANSI 代码页解码，文件里的中文会变乱码、破坏引号配对，
+     整个脚本直接语法错误跑不起来。
+  2. 等待旧进程退出要用 `tasklist /FI "PID eq <pid>"`：应用若以提升权限运行，
+     `Get-Process -Id` 可能查不到，会白等到超时。
+- **更新包哈希发布在独立的 `hashes` 分支**（`build-release.yml` 末尾推送）：
+  独立分支不会随 `git clone` 下到工作区，也不会让主分支历史被历次哈希撑大。
+  客户端按 `https://raw.githubusercontent.com/<repo>/hashes/hashes.json` 取期望 SHA256。
 - **Markdown 渲染用开源控件**：更新说明（CHANGELOG 章节）交给
   `CommunityToolkit.WinUI.UI.Controls.Markdown`（MIT，底层是 Markdig）渲染，
   不要自己手写 Markdown 解析。它会带入 `ColorCode`（代码块高亮）等依赖，属正常。

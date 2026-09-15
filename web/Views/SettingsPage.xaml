@@ -221,10 +221,32 @@
                                 <TextBlock Text="检查更新" />
                             </StackPanel>
                         </Button>
+                        <Button Click="OnDownloadUpdate"
+                                Style="{StaticResource PrimaryActionButtonStyle}"
+                                IsEnabled="{x:Bind VM.CanDownloadUpdate, Mode=OneWay}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <FontIcon Glyph="&#xE896;" FontSize="14" />
+                                <TextBlock Text="下载并更新" />
+                            </StackPanel>
+                        </Button>
                         <ProgressRing Width="16" Height="16" VerticalAlignment="Center"
                                       IsActive="{x:Bind VM.CheckingUpdate, Mode=OneWay}"
                                       Visibility="{x:Bind VM.CheckingUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
+
+                    <!-- 下载进度：下载完成后会启动独立的替换脚本并自动退出应用 -->
+                    <StackPanel Spacing="6"
+                                Visibility="{x:Bind VM.Downloading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
+                        <ProgressBar Maximum="100" Value="{x:Bind VM.DownloadProgress, Mode=OneWay}" />
+                    </StackPanel>
+
+                    <TextBlock Text="{x:Bind VM.UpdateActionMsg, Mode=OneWay}" FontSize="12" TextWrapping="Wrap"
+                               Foreground="{ThemeResource AppBrandBrush}"
+                               Visibility="{x:Bind VM.HasUpdateActionMsg, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
+                    <TextBlock Text="自动更新会下载官方发布包并校验 SHA256，然后退出应用、覆盖程序文件并重启；程序目录不可写时会提示手动更新。"
+                               Style="{StaticResource FootnoteTextStyle}"
+                               Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
                     <!-- 检查结果：可能较长（含降级原因），放进可滚动区域完整展示 -->
                     <Border CornerRadius="{StaticResource CardCornerRadius}"

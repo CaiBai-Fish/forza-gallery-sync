@@ -13,8 +13,20 @@ public sealed partial class SettingsPage : Page
     {
         InitializeComponent();
         VM.PickDirRequested += OnPickDirRequested;
+        // 替换脚本会等本进程退出再覆盖文件，所以收到通知后必须真正结束进程
+        VM.UpdateRequested += OnUpdateRequested;
         Loaded += OnLoaded;
         Unloaded += OnUnloaded;
+    }
+
+    private async void OnDownloadUpdate(object sender, RoutedEventArgs e) => await VM.DownloadAndApplyUpdateAsync();
+
+    private static void OnUpdateRequested()
+    {
+        Logger.Info("退出应用以便更新脚本覆盖程序文件");
+        // 用 Environment.Exit 而不是 Application.Exit：确保进程立刻消失，
+        // 否则脚本要等满 60 秒超时才继续（文件仍被占用，覆盖会失败）。
+        Environment.Exit(0);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)

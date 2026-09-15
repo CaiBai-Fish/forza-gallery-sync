@@ -144,3 +144,57 @@ jobs:
           draft: false
           prerelease: false
 
+      # 把产物哈希发布到独立的 `hashes` 分支：
+      #   - 独立分支不会随 git clone 下到 working tree，仓库不会因历次哈希而膨胀；
+      #   - 客户端用 raw URL 直接取单个 JSON 校验下载到的更新包，不必下载整个产物清单；
+      #   - 用 force push 到固定的 hashes 分支，避免每个版本留一个分支。
+      - name: Publish artifact hashes to `hashes` branch
+        shell: pwsh
+        run: |
+          $version = $env:VERSION
+          $records = [ordered]@{}
+          $files = @()
+          $files += Get-ChildItem "web/dist/ForzaGallerySync-*-win-x64.zip"
+          $cli = Get-Item "cli-dist/forza-sync.exe" -ErrorAction SilentlyContinue
+          if ($cli) { $files += $cli }
+
+          foreach ($f in $files) {
+            $h = (Get-FileHash -LiteralPath $f.FullName -Algorithm SHA256).Hash.ToLower()
+            $records[$f.Name] = @{
+              sha256 = $h
+              size   = $f.Length
+            }
+            Write-Host "$($f.Name)  $h"
+          }
+
+          $payload = [ordered]@{
+            version   = $version
+            generated = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ")
+            artifacts = $records
+          }
+          $json = ($payload | ConvertTo-Json -Depth 5)
+          # 无 BOM：客户端按 UTF-8 解析，BOM 会破坏 JSON 解析
+          $jsonPath = Join-Path $env:RUNNER_TEMP "hashes.json"
+          [System.IO.File]::WriteAllText($jsonPath, $json, (New-Object System.Text.UTF8Encoding($false)))
+          Write-Host "--- hashes.json ---"
+          Write-Host $json
+
+          # 推到 hashes 分支：先在独立目录建历史，再 force push 覆盖
+          $work = Join-Path $env:RUNNER_TEMP "hashes-branch"
+          New-Item -ItemType Directory -Force -Path $work | Out-Null
+          Push-Location $work
+          git init --quiet
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          Copy-Item $jsonPath "hashes.json"
+          git add hashes.json
+          $tag = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } else { $version }
+          git commit --quiet -m "hashes: $tag"
+          # 新 init 的仓库没有 checkout 的凭证配置，推送 URL 里带上 token
+          $host_ = $env:GITHUB_SERVER_URL -replace '^https://', ''
+          $remote = "https://x-access-token:$env:GITHUB_TOKEN@$host_/$env:GITHUB_REPOSITORY"
+          git push --quiet --force $remote "HEAD:refs/heads/hashes"
+          Pop-Location
+          Write-Host "hashes 分支已更新（$tag）"
+
+

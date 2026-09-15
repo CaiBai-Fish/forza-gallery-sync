@@ -144,7 +144,10 @@ public sealed class SettingsViewModel : ObservableObject
     public bool CheckingUpdate
     {
         get => _checkingUpdate;
-        set => SetProperty(ref _checkingUpdate, value);
+        set
+        {
+            if (SetProperty(ref _checkingUpdate, value)) OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
     }
 
     public string UpdateText
@@ -156,7 +159,10 @@ public sealed class SettingsViewModel : ObservableObject
     public bool HasUpdate
     {
         get => _hasUpdate;
-        set => SetProperty(ref _hasUpdate, value);
+        set
+        {
+            if (SetProperty(ref _hasUpdate, value)) OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
     }
 
     public string CurrentVersion
@@ -420,6 +426,121 @@ public sealed class SettingsViewModel : ObservableObject
 
     /// <summary>是否有更新说明可展示。</summary>
     public bool HasUpdateNotes => !string.IsNullOrWhiteSpace(UpdateNotes);
+
+    // ---- 自动更新 ----
+
+    private bool _downloading;
+    private double _downloadProgress;
+    private string _updateActionMsg = "";
+    private bool _updateBusy;
+    private readonly CancellationTokenSource _updateCts = new();
+
+    /// <summary>是否正在下载更新包。</summary>
+    public bool Downloading
+    {
+        get => _downloading;
+        private set
+        {
+            if (SetProperty(ref _downloading, value)) OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
+    }
+
+    /// <summary>下载进度（0~100）。</summary>
+    public double DownloadProgress
+    {
+        get => _downloadProgress;
+        private set => SetProperty(ref _downloadProgress, value);
+    }
+
+    /// <summary>更新流程的状态文字（下载中 / 校验中 / 失败原因）。</summary>
+    public string UpdateActionMsg
+    {
+        get => _updateActionMsg;
+        private set
+        {
+            if (SetProperty(ref _updateActionMsg, value)) OnPropertyChanged(nameof(HasUpdateActionMsg));
+        }
+    }
+
+    public bool HasUpdateActionMsg => !string.IsNullOrEmpty(_updateActionMsg);
+
+    /// <summary>可以点「下载并更新」：有新版本、没在下载、也没在检查。</summary>
+    public bool CanDownloadUpdate => HasUpdate && !_downloading && !CheckingUpdate && !_updateBusy;
+
+    /// <summary>下载 + 校验 + 启动替换脚本，随后由页面退出应用。</summary>
+    public async Task DownloadAndApplyUpdateAsync()
+    {
+        if (!HasUpdate || string.IsNullOrWhiteSpace(LatestVersion)) return;
+
+        if (!UpdateService.CanAutoUpdate(out var reason))
+        {
+            UpdateActionMsg = reason;
+            return;
+        }
+
+        _updateBusy = true;
+        Downloading = true;
+        DownloadProgress = 0;
+        UpdateActionMsg = $"正在下载 {LatestVersion}…";
+
+        try
+        {
+            var progress = new Progress<double>(p => Ui.Run(() =>
+            {
+                if (p >= 0)
+                {
+                    DownloadProgress = Math.Round(p * 100, 0);
+                    UpdateActionMsg = $"正在下载 {LatestVersion}… {DownloadProgress:F0}%";
+                }
+                else
+                {
+                    UpdateActionMsg = "正在下载…";
+                }
+            }));
+
+            var (zip, prefix) = await UpdateService.DownloadVerifiedAsync(
+                LatestVersion, progress, _updateCts.Token);
+
+            // 诊断开关：设 FORZA_SYNC_UPDATE_SIMULATE=1 时只走到"生成脚本并自检"为止，
+            // 不退出、不覆盖程序文件。用于验证下载、哈希校验与脚本生成是否正确。
+            if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
+            {
+                var script = UpdateService.WriteScriptOnly(zip, prefix,
+                    Environment.UserDomainName + "\\" + Environment.UserName);
+                var check = UpdateService.SelfCheckScript(script);
+                UpdateActionMsg = $"模拟模式：下载与哈希已校验；{check}";
+                Logger.Info($"模拟模式结果：zip={zip}, prefix='{prefix}', {check}");
+                return;
+            }
+
+            UpdateActionMsg = "下载完成，哈希校验通过，正在准备替换…";
+            Logger.Info($"准备应用更新：{zip}，剥离前缀 '{prefix}'");
+
+            // 交给独立脚本：它会等本进程退出后覆盖程序文件并重启
+            UpdateService.LaunchReplaceAndRestart(zip, prefix, Environment.UserDomainName + "\\" + Environment.UserName);
+
+            UpdateActionMsg = "即将退出并完成更新…";
+            UpdateRequested?.Invoke();
+        }
+        catch (OperationCanceledException)
+        {
+            UpdateActionMsg = "已取消下载。";
+        }
+        catch (Exception ex)
+        {
+            UpdateActionMsg = ex.Message;
+            Logger.Exception("自动更新失败", ex);
+        }
+        finally
+        {
+            _updateBusy = false;
+            Downloading = false;
+            OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
+    }
+
+    /// <summary>页面收到此事件后应退出应用，让替换脚本接管。</summary>
+    public event Action? UpdateRequested;
 
     public async Task StartLoginAsync()
     {
