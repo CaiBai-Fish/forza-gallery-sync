@@ -529,7 +529,7 @@ public static class IncrementalUpdateService
             // 每个增量资产是"单文件 zip"（小文件包除外，它由调用方自行解压）
             using var archive = ZipFile.OpenRead(zip);
             var entry = archive.Entries.FirstOrDefault(e => !string.IsNullOrEmpty(e.Name))
-                ?? throw new UpdateException($"增量资产 {assetName} 是空包");
+                ?? throw new UpdateException(StringLocalizer.Format("Inc_EmptyAsset", assetName));
 
             var temp = destination + ".tmp";
             entry.ExtractToFile(temp, true);
@@ -555,7 +555,8 @@ public static class IncrementalUpdateService
 
         if (!resp.IsSuccessStatusCode)
         {
-            throw new UpdateException($"下载 {assetName} 失败：HTTP {(int)resp.StatusCode}（{url}）");
+            throw new UpdateException(
+                StringLocalizer.Format("Inc_AssetDownloadFailed", assetName, (int)resp.StatusCode, url));
         }
 
         await using var source = await resp.Content.ReadAsStreamAsync(token);

@@ -9,6 +9,16 @@
 
 ## [未发布]
 
+### 修复
+- **部分错误提示没有接入多语言，英文界面会显示中文**：`UpdateService` 与
+  `IncrementalUpdateService` 里 12 处异常消息是硬编码中文，而这些消息会直接显示给
+  用户（下载失败、更新包损坏、脚本启动/生成失败、哈希清单缺失、哈希校验失败、
+  内嵌资源缺失、增量资产空包等）。对应的文案键其实早已存在（`Upd_*` / `Inc_*`），
+  只是没接上，现在改为 `StringLocalizer.Get/Format`。
+  排查手段固化成了 `tools/check_i18n_keys.py`：扫描 C# 里所有
+  `StringLocalizer.Get/Format` 调用并核对键是否存在于两种语言的字典里
+  （`StringLocalizer` 取不到键时会原样返回键名，界面会直接显示键名）。
+
 ## [1.0.5] - 2026-09-15
 
 ### 修复

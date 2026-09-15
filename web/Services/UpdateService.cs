@@ -334,8 +334,7 @@ public static class UpdateService
         {
             Logger.Error($"未能取得 v{version} 的哈希清单，拒绝自动安装");
             throw new UpdateException(
-                $"无法取得 v{version} 的哈希清单（hashes 分支的 {version}.txt / hashes.json 与 Release API 都不可用），"
-                + "为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。");
+                StringLocalizer.Format("Upd_NoManifestZip", version));
         }
 
         if (!VerifyHash(zip, expected))
@@ -376,16 +375,14 @@ public static class UpdateService
             Logger.Error($"未能取得 {artifact} 的哈希清单，拒绝自动安装");
             SafeDelete(path);
             throw new UpdateException(
-                $"无法取得 {artifact} 的哈希清单（hashes 分支清单与 Release API 都不可用），"
-                + "为安全起见不自动安装。请到 Releases 页手动下载，或稍后重试。");
+                StringLocalizer.Format("Upd_NoManifestInstaller", artifact));
         }
 
         if (!VerifyHash(path, expected))
         {
             SafeDelete(path);
             throw new UpdateException(
-                "安装程序哈希校验失败，文件可能下载不完整或已被篡改，已删除。请重试；"
-                + "若反复失败请到 Releases 页手动下载。");
+                StringLocalizer.Get("Upd_InstallerHashMismatch"));
         }
 
         Logger.Info($"安装程序已下载并校验：{path}");
@@ -498,7 +495,7 @@ public static class UpdateService
         catch (Exception ex)
         {
             SafeDelete(target);
-            throw new UpdateException($"下载更新包失败：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_DownloadPackageFailed", ex.Message), ex);
         }
     }
 
@@ -535,7 +532,7 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            throw new UpdateException($"更新包已损坏或不完整：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_CorruptPackage", ex.Message), ex);
         }
     }
 
@@ -586,7 +583,7 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            throw new UpdateException($"启动更新脚本失败：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_StartScriptFailed", ex.Message), ex);
         }
     }
 
@@ -668,7 +665,7 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            throw new UpdateException($"启动安装脚本失败：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_StartInstallScriptFailed", ex.Message), ex);
         }
     }
 
@@ -701,7 +698,7 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            throw new UpdateException($"生成安装脚本失败：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_BuildInstallScriptFailed", ex.Message), ex);
         }
     }
 
@@ -746,7 +743,7 @@ public static class UpdateService
         }
         catch (Exception ex)
         {
-            throw new UpdateException($"生成更新脚本失败：{ex.Message}", ex);
+            throw new UpdateException(StringLocalizer.Format("Upd_BuildUpdateScriptFailed", ex.Message), ex);
         }
     }
 
@@ -766,11 +763,11 @@ public static class UpdateService
 
         if (name is null)
         {
-            throw new UpdateException($"找不到内嵌的脚本资源 {resourceFileName}。");
+            throw new UpdateException(StringLocalizer.Format("Upd_ScriptResourceMissing", resourceFileName));
         }
 
         using var stream = assembly.GetManifestResourceStream(name)
-            ?? throw new UpdateException($"无法打开内嵌的脚本资源 {resourceFileName}。");
+            ?? throw new UpdateException(StringLocalizer.Format("Upd_ScriptResourceOpenFailed", resourceFileName));
         using var reader = new StreamReader(stream, System.Text.Encoding.UTF8);
         return reader.ReadToEnd();
     }
