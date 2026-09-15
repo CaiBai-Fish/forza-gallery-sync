@@ -44,10 +44,80 @@ public static class UpdateService
     private static string ArtifactName(string version) => $"ForzaGallerySync-{version}-win-x64.zip";
 
     /// <summary>
-    /// 从哈希清单里取更新包的期望 SHA256。
-    /// 清单缺失或没有该产物时返回 null（由调用方决定是否放行）。
+    /// 取得更新包的期望 SHA256。两个来源，按可靠性排序：
+    ///
+    /// 1. **GitHub Releases API 的 `digest` 字段**（优先）：这是发布平台自己算的哈希，
+    ///    与上传时的字节绑定，最权威；缺点是要走 API（匿名限流 60 次/小时）。
+    /// 2. **`hashes` 分支的清单**（兜底）：CI 自己算并发布到独立分支，
+    ///    用 raw URL 取静态文件，不消耗 API 配额；API 限流或不可用时仍能校验。
+    ///
+    /// 两个来源都拿不到时返回 null，由调用方决定是否放行（当前策略：跳过校验但记告警）。
     /// </summary>
     public static async Task<string?> TryGetExpectedHashAsync(string version, CancellationToken token)
+    {
+        var fromApi = await TryGetHashFromApiAsync(version, token);
+        if (fromApi is not null) return fromApi;
+
+        return await TryGetHashFromHashesBranchAsync(version, token);
+    }
+
+    /// <summary>从 Releases API 的 digest 字段取哈希。</summary>
+    private static async Task<string?> TryGetHashFromApiAsync(string version, CancellationToken token)
+    {
+        var artifact = ArtifactName(version);
+        try
+        {
+            using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+            http.DefaultRequestHeaders.UserAgent.ParseAdd("forza-gallery-sync-updater");
+            http.DefaultRequestHeaders.Accept.ParseAdd("application/vnd.github+json");
+
+            var url = $"https://api.github.com/repos/CaiBai-Fish/forza-gallery-sync/releases/tags/v{version}";
+            var json = await http.GetStringAsync(url, token);
+            using var doc = System.Text.Json.JsonDocument.Parse(json);
+
+            if (!doc.RootElement.TryGetProperty("assets", out var assets))
+            {
+                return null;
+            }
+
+            foreach (var asset in assets.EnumerateArray())
+            {
+                if (!string.Equals(asset.GetProperty("name").GetString(), artifact, StringComparison.OrdinalIgnoreCase))
+                {
+                    continue;
+                }
+
+                // 形如 "sha256:<hex>"；老仓库可能没有该字段
+                if (asset.TryGetProperty("digest", out var digest) &&
+                    digest.ValueKind == System.Text.Json.JsonValueKind.String)
+                {
+                    var raw = digest.GetString();
+                    if (!string.IsNullOrWhiteSpace(raw))
+                    {
+                        var value = raw.StartsWith("sha256:", StringComparison.OrdinalIgnoreCase)
+                            ? raw["sha256:".Length..]
+                            : raw;
+                        Logger.Info($"期望哈希（Release API digest）{artifact} = {value}");
+                        return value.Trim();
+                    }
+                }
+
+                Logger.Warn($"Release 资产 {artifact} 没有 digest 字段，尝试 hashes 分支");
+                return null;
+            }
+
+            Logger.Warn($"Release v{version} 中没有资产 {artifact}");
+            return null;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"从 Release API 取哈希失败（将回退 hashes 分支）：{ex.Message}");
+            return null;
+        }
+    }
+
+    /// <summary>从 hashes 分支的清单取哈希（静态文件，不消耗 API 配额）。</summary>
+    private static async Task<string?> TryGetHashFromHashesBranchAsync(string version, CancellationToken token)
     {
         var artifact = ArtifactName(version);
         try
@@ -73,7 +143,7 @@ public static class UpdateService
                 return null;
             }
 
-            Logger.Info($"期望哈希 {artifact} = {value}");
+            Logger.Info($"期望哈希（hashes 分支）{artifact} = {value}");
             return value.Trim();
         }
         catch (Exception ex)
