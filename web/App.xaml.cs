@@ -36,6 +36,15 @@ public partial class App : Application
     {
         Logger.Info("应用启动");
 
+        // 增量更新自检：只跑"清单 → 比对 → 下载 → 校验 → 打包 → 生成脚本"，
+        // 不建窗口、不覆盖程序文件，结论写日志并用退出码反馈。见 IncrementSelfTest。
+        // 必须放在单实例检查之前：自检不建窗口，不该被"已有实例在运行"挡掉。
+        if (Environment.GetEnvironmentVariable("FORZA_SYNC_INC_TEST") == "1")
+        {
+            _ = RunSelfTestAsync();
+            return;
+        }
+
         // 单实例：第二个实例不建窗口，唤醒已有窗口后显式结束自己。
         // 必须显式退出——WinUI 3 里只从启动回调 return 不会结束进程，
         // 消息循环照旧跑着，任务管理器里会残留一个没有窗口的进程。
@@ -56,5 +65,12 @@ public partial class App : Application
         // 登记过早会拿到 0，导致第二个实例的唤醒广播收不到。
         var hwnd = WinRT.Interop.WindowNative.GetWindowHandle(MainWindow);
         SingleInstance.RegisterWindow(hwnd);
+    }
+
+    private static async Task RunSelfTestAsync()
+    {
+        var code = await IncrementSelfTest.RunAsync();
+        Logger.Info($"增量自检退出码 {code}");
+        Environment.Exit(code);
     }
 }

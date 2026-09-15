@@ -161,6 +161,23 @@ jobs:
           }
           Write-Host "版本号一致性校验通过"
 
+      # 增量更新资产：把发布目录里"体积大、且跨版本才变"的文件各自发布成 Release 资产，
+      # 客户端更新时只下载这些文件，不必为基本不变的运行时（Python 77MB + .NET/WindowsSDK 182MB）
+      # 每次重下 130MB 的完整包。生成逻辑放在 web/make-increment.ps1，CI 与本地共用同一实现
+      # （本地可用它验证清单格式，不必等 CI）。
+      - name: Build incremental assets (per-file, >=256KB)
+        shell: pwsh
+        run: |
+          $incDir = Join-Path $env:RUNNER_TEMP "inc"
+          powershell -ExecutionPolicy Bypass -File .\web\make-increment.ps1 `
+            -SourceDir "web/dist/ForzaGallerySync-$($env:VERSION)-win-x64" `
+            -Version $env:VERSION -OutputDir $incDir
+          if ($LASTEXITCODE -ne 0) { throw "make-increment failed (exit $LASTEXITCODE)" }
+
+          "INC_DIR=$incDir" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "INC_MANIFEST=$(Join-Path $incDir "increment-$($env:VERSION).json")" |
+            Out-File -FilePath $env:GITHUB_ENV -Append
+
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -179,6 +196,8 @@ jobs:
           files: |
             cli-dist/forza-sync.exe
             web/dist/ForzaGallerySync-*-win-x64.zip
+            ${{ env.INC_DIR }}/ForzaGallerySync-inc-*.zip
+            ${{ env.INC_MANIFEST }}
           draft: false
           prerelease: false
 
@@ -264,8 +283,14 @@ jobs:
 
           $tag = if ($env:RELEASE_TAG) { $env:RELEASE_TAG } else { $version }
           $msg = "hashes: $tag"
-          Publish-File -LocalPath $txtPath  -RepoPath "$version.txt"  -Message $msg
-          Publish-File -LocalPath $jsonPath -RepoPath "hashes.json"  -Message $msg
+          Publish-File -LocalPath $txtPath   -RepoPath "$version.txt"    -Message $msg
+          Publish-File -LocalPath $jsonPath  -RepoPath "hashes.json"     -Message $msg
+          # 增量更新清单：客户端先取它，用来判断本地哪些文件已经是最新的
+          if ($env:INC_MANIFEST -and (Test-Path $env:INC_MANIFEST)) {
+            Publish-File -LocalPath $env:INC_MANIFEST -RepoPath "increment.json" -Message $msg
+          } else {
+            Write-Host "警告：没有增量清单可发布（$env:INC_MANIFEST）"
+          }
 
           # 回读校验：确认远端内容与本地算出的哈希一致（不看返回值，直接问 API）
           $verifyTxt = gh api "repos/$env:GITHUB_REPOSITORY/contents/$version.txt?ref=hashes" --jq '.content'

@@ -233,9 +233,23 @@ public static class UpdateService
         return true;
     }
 
-    /// <summary>应用目录（exe 所在目录）。</summary>
-    public static string AppDirectory =>
-        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppContext.BaseDirectory;
+    /// <summary>
+    /// 应用目录（exe 所在目录）。
+    ///
+    /// 可用环境变量 <c>FORZA_SYNC_APP_DIR</c> 覆盖：自动化验证时把"程序目录"指向一个
+    /// 临时目录，就能在不动真实安装的前提下验证增量比对与替换逻辑。
+    /// 正常运行时该变量不存在，行为与之前完全一致。
+    /// </summary>
+    public static string AppDirectory
+    {
+        get
+        {
+            var overridden = Environment.GetEnvironmentVariable("FORZA_SYNC_APP_DIR");
+            if (!string.IsNullOrWhiteSpace(overridden)) return overridden;
+
+            return Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location) ?? AppContext.BaseDirectory;
+        }
+    }
 
     /// <summary>下载 zip 的目标路径（放在系统临时目录，避免污染程序目录）。</summary>
     public static string DownloadPath(string version) =>
@@ -424,9 +438,18 @@ public static class UpdateService
     /// 当前进程身份（域名\用户名），仅写入日志便于排查；等待退出不依赖它——
     /// tasklist 对更高完整性级别的进程也能查到 PID。
     /// </param>
-    public static void LaunchReplaceAndRestart(string zipPath, string stripPrefix, string identity)
+    /// <param name="skipExeCheck">
+    /// 增量更新包只含变化的文件，可能没有 exe，此时跳过"必须能定位 exe"的检查。
+    /// </param>
+    /// <param name="preserve">
+    /// 不允许被覆盖的相对路径（如正在运行的更新脚本自身）。传 null 表示不保护任何文件
+    /// （完整包路径的行为，与之前一致）。
+    /// </param>
+    public static void LaunchReplaceAndRestart(
+        string zipPath, string stripPrefix, string identity,
+        bool skipExeCheck = false, IReadOnlyList<string>? preserve = null)
     {
-        var script = WriteScriptOnly(zipPath, stripPrefix, identity);
+        var script = WriteScriptOnly(zipPath, stripPrefix, identity, skipExeCheck, preserve);
 
         // 模拟模式：只生成并自检脚本，不启动它。用于在不动程序文件的前提下
         // 验证占位符替换与 PowerShell 语法是否正确。
@@ -505,11 +528,18 @@ public static class UpdateService
     /// 独立出来是为了支持模拟模式（<c>FORZA_SYNC_UPDATE_SIMULATE=1</c>）：
     /// 可以把下载、哈希校验、脚本生成整条链路走完，但不覆盖正在运行的程序文件。
     /// </summary>
-    public static string WriteScriptOnly(string zipPath, string stripPrefix, string identity)
+    public static string WriteScriptOnly(
+        string zipPath, string stripPrefix, string identity,
+        bool skipExeCheck = false, IReadOnlyList<string>? preserve = null)
     {
         var script = Path.Combine(Path.GetTempPath(), $"ForzaGallerySync-update-{Environment.ProcessId}.ps1");
         var log = Path.Combine(Path.GetTempPath(), "ForzaGallerySync-update.log");
         var stage = Path.Combine(Path.GetTempPath(), $"ForzaGallerySync-stage-{Environment.ProcessId}");
+
+        // 保护名单用分号分隔（文件路径里不会出现分号，逗号则可能）
+        var preserveValue = preserve is null || preserve.Count == 0
+            ? ""
+            : string.Join(';', preserve);
 
         try
         {
@@ -520,6 +550,8 @@ public static class UpdateService
                 .Replace("{{STAGE}}", EscapeForSingleQuotedPs(stage))
                 .Replace("{{LOG}}", EscapeForSingleQuotedPs(log))
                 .Replace("{{PID}}", Environment.ProcessId.ToString())
+                .Replace("{{SKIPEXE}}", skipExeCheck ? "1" : "0")
+                .Replace("{{PRESERVE}}", EscapeForSingleQuotedPs(preserveValue))
                 .Replace("{{IDENTITY}}", EscapeForSingleQuotedPs(identity));
 
             // 必须写成 UTF-8 **带 BOM**：脚本由 powershell.exe（Windows PowerShell 5.1）

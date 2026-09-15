@@ -1,9 +1,9 @@
-﻿# ============================================================
+# ============================================================
 #  Forza Gallery Sync - 自动更新替换脚本
 #
 #  由应用（UpdateService.LaunchReplaceAndRestart）生成并启动。
 #  占位符 {{APP}} / {{ZIP}} / {{PREFIX}} / {{STAGE}} / {{LOG}} / {{PID}} / {{IDENTITY}}
-#  在启动前由 C# 侧替换为实际值。
+#  / {{SKIPEXE}} / {{PRESERVE}} 在启动前由 C# 侧替换为实际值。
 #
 #  流程：等旧进程退出 → 解压更新包 → 覆盖程序目录中的文件 → 重启应用
 #  设计要点：
@@ -11,6 +11,8 @@
 #    - 只覆盖、不删除：多余文件（用户自己的东西）保留，
 #      也避免删错文件导致程序无法启动。
 #    - 覆盖失败不静默：全部写入日志，并提示手动下载覆盖。
+#    - 增量包只含"变化的文件"，因此没有 exe 是正常的（SKIPEXE=1 时不做该检查），
+#      并且不能覆盖正在运行的更新脚本自身（由 PRESERVE 保护）。
 # ============================================================
 
 $ErrorActionPreference = 'Continue'
@@ -22,6 +24,9 @@ $stage    = '{{STAGE}}'
 $log      = '{{LOG}}'
 $oldPid   = {{PID}}
 $identity = '{{IDENTITY}}'
+$skipExeCheck = '{{SKIPEXE}}' -eq '1'
+# 分号分隔的保护名单（相对路径，匹配时忽略大小写）
+$preserve = @((('{{PRESERVE}}' -split ';') | Where-Object { $_ -ne '' }))
 $exe      = Join-Path $app 'forza-gallery-sync.exe'
 $artifact = 'forza-gallery-sync.exe'
 
@@ -57,15 +62,24 @@ try {
     # 发布包形如 <顶层目录>/forza-gallery-sync.exe；剥离前缀后定位真正的源目录
     $src = Join-Path $stage $prefix
     if (-not (Test-Path -LiteralPath (Join-Path $src $artifact))) { $src = $stage }
-    if (-not (Test-Path -LiteralPath (Join-Path $src $artifact))) {
+    if (-not $skipExeCheck -and -not (Test-Path -LiteralPath (Join-Path $src $artifact))) {
         throw ('解压后找不到 {0}' -f $artifact)
+    }
+    if ($skipExeCheck) {
+        Log (('增量更新包（{0} 个条目），不校验可执行文件是否存在' -f (Get-ChildItem -LiteralPath $src -Recurse -File).Count))
     }
     Log ('源目录 {0}' -f $src)
 
     $copied = 0
+    $skipped = 0
     $failed = @()
     Get-ChildItem -LiteralPath $src -Recurse -File | ForEach-Object {
         $rel = $_.FullName.Substring($src.Length).TrimStart('\')
+        # 保护名单：正在运行的更新脚本自身等不能被覆盖（否则脚本被换掉，本进程行为不可预期）
+        if ($preserve -contains $rel) {
+            $skipped++
+            return
+        }
         $dst = Join-Path $app $rel
         $dstDir = Split-Path $dst -Parent
         try {
@@ -79,7 +93,7 @@ try {
         }
     }
 
-    Log ('已覆盖 {0} 个文件' -f $copied)
+    Log ('已覆盖 {0} 个文件（保护跳过 {1} 个）' -f $copied, $skipped)
     if ($failed.Count -gt 0) {
         Log '以下文件覆盖失败（程序可能处于新旧混合状态，建议重新下载覆盖）：'
         $failed | ForEach-Object { Log ('  ' + $_) }

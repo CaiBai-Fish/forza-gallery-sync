@@ -491,6 +491,26 @@ public sealed class SettingsViewModel : ObservableObject
     /// <summary>可以点「下载并更新」：有新版本、没在下载、也没在检查。</summary>
     public bool CanDownloadUpdate => HasUpdate && !_downloading && !CheckingUpdate && !_updateBusy;
 
+    private bool _preferIncremental = true;
+
+    /// <summary>
+    /// 优先增量更新：只下载真正变化的文件，失败时自动回退完整包。
+    ///
+    /// 发布目录解压后约 269 MB，其中 Python 运行时与 .NET/Windows SDK 运行时跨版本几乎不变，
+    /// 每次更新真正变的只有应用自身那几个文件，所以增量通常能省掉绝大部分流量。
+    /// </summary>
+    public bool PreferIncremental
+    {
+        get => _preferIncremental;
+        set
+        {
+            if (SetProperty(ref _preferIncremental, value))
+            {
+                Logger.Info($"增量更新开关：{(value ? "启用" : "停用")}");
+            }
+        }
+    }
+
     /// <summary>下载 + 校验 + 启动替换脚本，随后由页面退出应用。</summary>
     public async Task DownloadAndApplyUpdateAsync()
     {
@@ -505,28 +525,63 @@ public sealed class SettingsViewModel : ObservableObject
         _updateBusy = true;
         Downloading = true;
         DownloadProgress = 0;
-        UpdateActionMsg = $"正在下载 {LatestVersion}…";
+        UpdateActionMsg = $"正在准备更新 {LatestVersion}…";
 
         try
         {
+            // 1) 先试增量：拿清单 → 比对本地文件 → 只下变化的文件 → 逐个校验哈希。
+            //    任何一步不成立（无清单、版本不符、小文件有差异、下载失败）都返回 null，
+            //    接下来原样走完整包那条路径——所以增量失败不会让用户无法更新。
+            if (PreferIncremental)
+            {
+                var incremental = await TryIncrementalAsync();
+                if (incremental is { } inc)
+                {
+                    UpdateActionMsg = "增量更新已校验，正在准备替换…";
+                    Logger.Info($"增量更新就绪：{inc.ZipPath}（前缀 '{inc.Prefix}'）");
+
+                    if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
+                    {
+                        var s = UpdateService.WriteScriptOnly(
+                            inc.ZipPath, inc.Prefix,
+                            Environment.UserDomainName + "\\" + Environment.UserName,
+                            skipExeCheck: true, preserve: IncrementalUpdateService.ProtectedRelativePaths);
+                        var check = UpdateService.SelfCheckScript(s);
+                        UpdateActionMsg = $"模拟模式（增量）：{check}";
+                        Logger.Info($"模拟模式（增量）结果：zip={inc.ZipPath}, {check}");
+                        return;
+                    }
+
+                    UpdateService.LaunchReplaceAndRestart(
+                        inc.ZipPath, inc.Prefix,
+                        Environment.UserDomainName + "\\" + Environment.UserName,
+                        skipExeCheck: true, preserve: IncrementalUpdateService.ProtectedRelativePaths);
+
+                    UpdateActionMsg = "即将退出并完成增量更新…";
+                    UpdateRequested?.Invoke();
+                    return;
+                }
+
+                Logger.Info("增量更新不可用，回退完整包");
+            }
+
+            // 2) 完整包
             var progress = new Progress<double>(p => Ui.Run(() =>
             {
                 if (p >= 0)
                 {
                     DownloadProgress = Math.Round(p * 100, 0);
-                    UpdateActionMsg = $"正在下载 {LatestVersion}… {DownloadProgress:F0}%";
+                    UpdateActionMsg = $"正在下载完整包 {LatestVersion}… {DownloadProgress:F0}%";
                 }
                 else
                 {
-                    UpdateActionMsg = "正在下载…";
+                    UpdateActionMsg = "正在下载完整包…";
                 }
             }));
 
             var (zip, prefix) = await UpdateService.DownloadVerifiedAsync(
                 LatestVersion, progress, _updateCts.Token);
 
-            // 诊断开关：设 FORZA_SYNC_UPDATE_SIMULATE=1 时只走到"生成脚本并自检"为止，
-            // 不退出、不覆盖程序文件。用于验证下载、哈希校验与脚本生成是否正确。
             if (Environment.GetEnvironmentVariable("FORZA_SYNC_UPDATE_SIMULATE") == "1")
             {
                 var script = UpdateService.WriteScriptOnly(zip, prefix,
@@ -538,10 +593,10 @@ public sealed class SettingsViewModel : ObservableObject
             }
 
             UpdateActionMsg = "下载完成，哈希校验通过，正在准备替换…";
-            Logger.Info($"准备应用更新：{zip}，剥离前缀 '{prefix}'");
+            Logger.Info($"准备应用更新（完整包）：{zip}，剥离前缀 '{prefix}'");
 
-            // 交给独立脚本：它会等本进程退出后覆盖程序文件并重启
-            UpdateService.LaunchReplaceAndRestart(zip, prefix, Environment.UserDomainName + "\\" + Environment.UserName);
+            UpdateService.LaunchReplaceAndRestart(zip, prefix,
+                Environment.UserDomainName + "\\" + Environment.UserName);
 
             UpdateActionMsg = "即将退出并完成更新…";
             UpdateRequested?.Invoke();
@@ -557,9 +612,47 @@ public sealed class SettingsViewModel : ObservableObject
         }
         finally
         {
+            IncrementalUpdateService.CleanupStage();
             _updateBusy = false;
             Downloading = false;
             OnPropertyChanged(nameof(CanDownloadUpdate));
+        }
+    }
+
+    /// <summary>
+    /// 尝试增量更新；返回 null 表示应当回退完整包。
+    /// 进度会换算到 0~100 写到 <see cref="DownloadProgress"/>。
+    /// </summary>
+    private async Task<(string ZipPath, string Prefix)?> TryIncrementalAsync()
+    {
+        try
+        {
+            var report = new Progress<(double Percent, string Stage)>(p => Ui.Run(() =>
+            {
+                DownloadProgress = Math.Round(p.Percent * 100, 0);
+                UpdateActionMsg = p.Stage;
+            }));
+
+            var result = await IncrementalUpdateService.TryPrepareAsync(
+                LatestVersion, report, _updateCts.Token);
+
+            if (result is null)
+            {
+                Logger.Info("增量更新未命中（本地已是最新 / 需要完整包），回退完整包");
+                UpdateActionMsg = "增量更新不适用，改用完整包…";
+                return null;
+            }
+
+            return (result.Value.ZipPath, result.Value.StripPrefix);
+        }
+        catch (OperationCanceledException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            Logger.Warn($"增量更新异常，回退完整包：{ex.Message}");
+            return null;
         }
     }
 

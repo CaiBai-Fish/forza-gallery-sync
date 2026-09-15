@@ -234,6 +234,13 @@
                                       Visibility="{x:Bind VM.CheckingUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
                     </StackPanel>
 
+                    <!-- 增量更新：只下载真正变化的文件，失败自动回退完整包 -->
+                    <ToggleSwitch Header="优先增量更新"
+                                  OnContent="只下载变化的文件"
+                                  OffContent="每次下载完整包"
+                                  IsOn="{x:Bind VM.PreferIncremental, Mode=TwoWay}"
+                                  Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
+
                     <!-- 下载进度：下载完成后会启动独立的替换脚本并自动退出应用 -->
                     <StackPanel Spacing="6"
                                 Visibility="{x:Bind VM.Downloading, Mode=OneWay, Converter={StaticResource BoolToVisibility}}">
@@ -244,7 +251,7 @@
                                Foreground="{ThemeResource AppBrandBrush}"
                                Visibility="{x:Bind VM.HasUpdateActionMsg, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
-                    <TextBlock Text="自动更新会先确认、再下载官方发布包并校验 SHA256；校验通过才退出应用、覆盖程序文件并重启。哈希不匹配或拿不到官方清单时不会自动安装，只提供手动下载。"
+                    <TextBlock Text="自动更新会先确认；增量模式只下载变化的文件并逐个校验 SHA256，不适用时自动回退完整包（完整包同样校验 SHA256）。校验通过才退出应用、覆盖程序文件并重启；哈希不匹配或拿不到官方清单时不会自动安装。"
                                Style="{StaticResource FootnoteTextStyle}"
                                Visibility="{x:Bind VM.HasUpdate, Mode=OneWay, Converter={StaticResource BoolToVisibility}}" />
 
